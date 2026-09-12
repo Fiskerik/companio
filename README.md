@@ -60,3 +60,5 @@ npm run test:e2e
 Databastesterna använder PostgreSQL via PGlite och simulerade autentiseringsroller. Webbläsartesterna kör desktop och en mobil viewport; detta ersätter inte fysisk iPhone, VoiceOver eller en ansluten Supabase-miljö.
 
 Se [driftsättning](docs/DEPLOYMENT.md) för nästa steg och [återstående lanseringsarbete](docs/RELEASE.md) för gränsen mellan den här versionen och en publik produkt.
+
+App Store-material finns i [store-assets](store-assets/README.md), inklusive ikon, iPhone-skärmbilder och metadatautkast.

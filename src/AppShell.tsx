@@ -322,6 +322,7 @@ function Welcome() {
 function Shell() {
   const { state, demo, ready, session, text, locale, error, clearError, refresh, refreshing } = useApp();
   const { width } = useWindowDimensions();
+  const listingPreview = process.env.EXPO_PUBLIC_STORE_PREVIEW === 'true';
   const desktop = width >= 960;
   const [tab, setTab] = useState('discover'),
     [chat, setChat] = useState<string | null>(null),
@@ -517,7 +518,7 @@ function Shell() {
             <IconButton name="notifications-outline" label={text('inbox')} onPress={() => nav.go('inbox')} />
           </View>
         </View>
-        {demo && (
+        {demo && !listingPreview && (
           <View style={{ backgroundColor: '#F1E9D7', paddingVertical: 7, paddingHorizontal: 20 }}>
             <Text style={{ fontSize: 11, color: '#7D6544', textAlign: 'center' }}>{text('demoNotice')}</Text>
           </View>

@@ -51,6 +51,7 @@
     "check": "npm run typecheck && npm test",
     "build:web": "node scripts/check-env.mjs && expo export --platform web && node scripts/postbuild.mjs",
     "preview": "node scripts/serve.mjs",
+    "store:assets": "node scripts/create-store-assets.mjs",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

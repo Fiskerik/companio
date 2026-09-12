@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-09-12T09:17:13.986Z",
+  "source": "Companio demo web build rendered with Playwright",
+  "screenshotSets": {
+    "6.9-inch": {
+      "width": 1320,
+      "height": 2868
+    },
+    "6.5-inch": {
+      "width": 1242,
+      "height": 2688
+    }
+  },
+  "files": [
+    "01-discover.png",
+    "02-people.png",
+    "03-chat.png",
+    "04-event.png",
+    "05-profile.png"
+  ]
+}
