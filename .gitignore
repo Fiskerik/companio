@@ -32,6 +32,15 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.env.*
+!.env.example
+.vercel/
+.local-backups/
+test-results/
+playwright-report/
+coverage/
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo

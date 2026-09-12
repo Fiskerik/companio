@@ -1,0 +1,73 @@
+workflows:
+  verify:
+    name: Companio · Verify
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      node: 24
+      vars:
+        EXPO_PUBLIC_DEMO_ENABLED: 'true'
+    triggering:
+      events: [pull_request]
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: false
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Type and database checks
+        script: npm run check
+      - name: Export web
+        script: npm run build:web
+    artifacts:
+      - dist/**
+  ios-testflight:
+    name: Companio · iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      app_store_connect: Companio App Store Connect
+    environment:
+      node: 24
+      xcode: latest
+      cocoapods: default
+      groups:
+        - companio-production
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: $BUNDLE_ID
+      vars:
+        EXPO_PUBLIC_DEMO_ENABLED: 'false'
+        XCODE_SCHEME: Companio
+    triggering:
+      events: [tag]
+      tag_patterns:
+        - pattern: ios-*
+          include: true
+    scripts:
+      - name: Validate release configuration
+        script: node scripts/check-env.mjs --release
+      - name: Install and verify
+        script: |
+          npm ci
+          npm run check
+      - name: Generate native iOS project
+        script: |
+          npx expo prebuild --platform ios --no-install
+          cd ios
+          pod install
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Archive signed app
+        script: xcode-project build-ipa --workspace "ios/Companio.xcworkspace" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false

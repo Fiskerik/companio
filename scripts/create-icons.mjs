@@ -1,0 +1,8 @@
+import sharp from 'sharp';
+import { writeFile } from 'node:fs/promises';
+
+// Original vector mark shared with the in-app logo. Opaque for App Store icons.
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 40 40"><rect width="40" height="40" fill="#F8F7F2"/><path d="M20 31C-1 20 4 4 15 9c3 1 5 5 5 5s2-4 5-5c11-5 16 11-5 22Z" fill="#2F5140"/><path d="M13 19c3 5 11 5 14 0" stroke="#E4ECCF" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+await writeFile('assets/mark.svg', svg);
+await sharp(Buffer.from(svg)).png().toFile('assets/icon.png');
+await sharp(Buffer.from(svg)).resize(64, 64).png().toFile('assets/favicon.png');

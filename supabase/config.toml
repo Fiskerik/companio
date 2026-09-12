@@ -1,0 +1,24 @@
+project_id = "companio"
+
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:4173"
+additional_redirect_urls = ["companio://", "http://localhost:4173"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 600
+
+[functions.notification-worker]
+verify_jwt = false
+# This server-only worker validates its own CRON_SECRET, never a client anon key.
