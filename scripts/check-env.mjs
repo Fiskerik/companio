@@ -9,7 +9,7 @@ const required =
         'EXPO_PUBLIC_PRIVACY_URL',
       ]
     : [];
-if (release) required.push('BUNDLE_ID');
+if (release) required.push('BUNDLE_ID', 'APP_STORE_APPLE_ID');
 const missing = required.filter((k) => !process.env[k]);
 if (release && demo) missing.push('EXPO_PUBLIC_DEMO_ENABLED=false');
 if (missing.length) {

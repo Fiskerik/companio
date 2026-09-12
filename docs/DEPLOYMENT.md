@@ -45,9 +45,9 @@ Variabelnamnet `ANON_KEY` kan innehålla antingen den publika publishable-nyckel
 1. Anslut samma GitHub-repo med YAML-konfiguration i roten.
 2. Skapa Apple Developer-konto, registrera ett eget tillgängligt bundle-ID och skapa appen i App Store Connect. Aktivera Sign in with Apple och Push Notifications.
 3. Lägg till App Store Connect API-integrationen med namnet **Companio App Store Connect** eller ändra samma namn i YAML-filen.
-4. Skapa Codemagic-gruppen **companio-production** med de publika värdena ovan samt `BUNDLE_ID`. Använd det verkliga bundle-ID:t, inte standardvärdet `com.companio.app`.
+4. Skapa Codemagic-gruppen **companio-production** med de publika värdena ovan samt `BUNDLE_ID=com.fiskerik.companio` och `APP_STORE_APPLE_ID` (App Store Connect → General → App Information → Apple ID). `BUNDLE_ID` finns även som en fast, icke-hemlig workflow-variabel så att signing-konfigurationen kan läsas innan gruppvariabler laddas.
 5. Konfigurera automatisk signering med rätt certifikat och distributionsprofil. Codemagic använder macOS/Xcode, Expo prebuild och CocoaPods; inget EAS-konto krävs.
-6. Kör verifieringsflödet först. En tagg som `ios-0.1.0-1` startar iOS-flödet och skickar ett lyckat signerat bygge till TestFlight. Skapa bara sådan tagg när ni avser att distribuera ett testbygge. Öka byggnumret för varje uppladdning.
+6. Kör verifieringsflödet först. En tagg som `ios-0.1.0-1` startar iOS-flödet och skickar ett lyckat signerat bygge till TestFlight. Build-steget hämtar senaste TestFlight-numret från App Store Connect och ökar det automatiskt. Skapa bara sådan tagg när ni avser att distribuera ett testbygge.
 
 Expo SDK 57 kräver stödjande Xcode-version (minst 26.4 enligt versionsdokumentationen). YAML använder `latest`; välj en verifierad kompatibel Xcode-version i Codemagic före första bygget. Apple-team, certifikat och App Store Connect-avtal måste vara färdiga. Bygget är inte testkört på macOS i denna leverans.
 

@@ -37,8 +37,9 @@ workflows:
         - companio-production
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: $BUNDLE_ID
+        bundle_identifier: com.fiskerik.companio
       vars:
+        BUNDLE_ID: com.fiskerik.companio
         EXPO_PUBLIC_DEMO_ENABLED: 'false'
         XCODE_SCHEME: Companio
     triggering:
@@ -58,6 +59,11 @@ workflows:
           npx expo prebuild --platform ios --no-install
           cd ios
           pod install
+      - name: Increment iOS build number
+        script: |
+          cd "$CM_BUILD_DIR/ios"
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
+          agvtool new-version -all $((LATEST_BUILD_NUMBER + 1))
       - name: Apply signing profiles
         script: xcode-project use-profiles
       - name: Archive signed app

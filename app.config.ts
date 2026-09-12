@@ -9,13 +9,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
   ios: {
-    bundleIdentifier: process.env.BUNDLE_ID || 'com.companio.app',
+    bundleIdentifier: process.env.BUNDLE_ID || 'com.fiskerik.companio',
     buildNumber: process.env.IOS_BUILD_NUMBER || process.env.PROJECT_BUILD_NUMBER || '1',
     supportsTablet: false,
     usesAppleSignIn: true,
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
-  android: { package: process.env.BUNDLE_ID || 'com.companio.app' },
+  android: { package: process.env.BUNDLE_ID || 'com.fiskerik.companio' },
   web: {
     bundler: 'metro',
     output: 'single',
