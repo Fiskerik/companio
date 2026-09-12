@@ -25,7 +25,9 @@ npm ci
 npm run web
 ```
 
-Välj **Utforska demo**. Exempelprofiler och träffar är tydligt märkta. Ändringar i demot sparas på den aktuella enheten; det är ingen fleranvändartjänst. Varken Supabase eller Vercel behövs för att prova.
+Välj **Fortsätt utan inloggning**. Exempelprofiler och träffar är tydligt märkta. Ändringar i demot sparas på den aktuella enheten; det är ingen fleranvändartjänst. Varken Supabase eller Vercel behövs för att prova. Under **Profil → Tillbaka till inloggning** kan du återvända till kontoinloggningen. Demodata förs inte över till ett konto.
+
+TestFlight-flödet har tills vidare `EXPO_PUBLIC_DEMO_ENABLED=true`, så samma knapp finns i nästa iOS-bygge. För att kräva konto igen: sätt värdet till `false` i `codemagic.yaml` och bygg om. E-post- och Apple-inloggningen finns kvar.
 
 För en byggd webbversion:
 

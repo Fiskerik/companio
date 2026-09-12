@@ -40,7 +40,8 @@ workflows:
         bundle_identifier: com.fiskerik.companio
       vars:
         BUNDLE_ID: com.fiskerik.companio
-        EXPO_PUBLIC_DEMO_ENABLED: 'false'
+        # Temporary local preview; set false when account testing is ready.
+        EXPO_PUBLIC_DEMO_ENABLED: 'true'
         XCODE_SCHEME: Companio
     triggering:
       events: [tag]
@@ -48,8 +49,8 @@ workflows:
         - pattern: ios-*
           include: true
     scripts:
-      - name: Validate release configuration
-        script: node scripts/check-env.mjs --release
+      - name: Validate TestFlight configuration
+        script: node scripts/check-env.mjs --testflight
       - name: Install and verify
         script: |
           npm ci

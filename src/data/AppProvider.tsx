@@ -135,8 +135,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const startDemo = async () => {
     refreshGeneration.current++;
     if (session) await supabase?.auth.signOut();
-    demoRef.current = true;
-    setDemo(true);
     const saved = await AsyncStorage.getItem(DEMO_KEY);
     let next = createDemo();
     try {
@@ -145,6 +143,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (parsed.adult && parsed.households?.length) next = parsed;
       }
     } catch {}
+    demoRef.current = true;
+    setDemo(true);
     stateRef.current = next;
     setState(next);
     setError('');

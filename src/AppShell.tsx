@@ -239,9 +239,35 @@ function Welcome() {
                 {locale === 'sv' ? 'Ett hej är en bra början.' : 'Hello is a lovely start.'}
               </Text>
               <Text style={S.muted}>
-                {locale === 'sv' ? 'Skapa ett konto eller logga in.' : 'Create an account or sign in.'}
+                {demoEnabled
+                  ? text('skipLoginIntro')
+                  : locale === 'sv'
+                    ? 'Skapa ett konto eller logga in.'
+                    : 'Create an account or sign in.'}
               </Text>
             </View>
+            {demoEnabled && (
+              <>
+                <Button
+                  label={text('skipLogin')}
+                  icon="arrow-forward"
+                  disabled={busy}
+                  onPress={async () => {
+                    setBusy(true);
+                    setError('');
+                    try {
+                      await startDemo();
+                    } catch {
+                      setError(text('error'));
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                />
+                <Text style={[S.muted, { fontSize: 12 }]}>{text('demoHelp')}</Text>
+                {backendConfigured && <View style={S.divider} />}
+              </>
+            )}
             {backendConfigured ? (
               <>
                 <Field
@@ -279,25 +305,13 @@ function Welcome() {
                   />
                 )}
               </>
-            ) : (
+            ) : !demoEnabled ? (
               <Text style={S.muted}>{text('connectBackend')}</Text>
-            )}
+            ) : null}
             {error && (
               <Text accessibilityRole="alert" style={{ color: C.red }}>
                 {error}
               </Text>
-            )}
-            {demoEnabled && (
-              <>
-                <View style={S.divider} />
-                <Button
-                  label={text('demo')}
-                  secondary
-                  icon="arrow-forward"
-                  onPress={() => void startDemo()}
-                />
-                <Text style={[S.muted, { fontSize: 12 }]}>{text('demoHelp')}</Text>
-              </>
             )}
             <View style={[S.row, { alignItems: 'flex-start' }]}>
               <Icon name="shield-checkmark-outline" size={18} color={C.muted} />

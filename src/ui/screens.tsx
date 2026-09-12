@@ -1484,7 +1484,7 @@ export function Profile({ nav }: { nav: Navigation }) {
       )}
       <Button secondary label={text('leaveHousehold')} onPress={() => nav.openEditor('leave')} />
       <Button danger label={text('delete')} onPress={() => nav.openEditor('delete')} />
-      <Button secondary label={text('signOut')} onPress={() => safely(signOut())} />
+      <Button secondary label={text(demo ? 'backToLogin' : 'signOut')} onPress={() => safely(signOut())} />
       {state.is_moderator && (
         <>
           <Button label={text('moderation')} onPress={() => setModeration(!moderation)} />

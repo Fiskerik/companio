@@ -42,6 +42,8 @@ Variabelnamnet `ANON_KEY` kan innehålla antingen den publika publishable-nyckel
 
 ## 4. Codemagic: TestFlight
 
+TestFlight tillåter tills vidare **Fortsätt utan inloggning** genom `EXPO_PUBLIC_DEMO_ENABLED=true` i workflow-variablerna. Detta använder lokal demodata, även om Supabase är konfigurerat. `--testflight` kontrollerar Apple-ID och bundle-ID samt backendvärden när demo är avstängt. För att åter kräva inloggning, ändra workflow-värdet till `false` och bygg om. `npm run release:check` kräver fortfarande avstängt demo inför publik release.
+
 1. Anslut samma GitHub-repo med YAML-konfiguration i roten.
 2. Skapa Apple Developer-konto, registrera ett eget tillgängligt bundle-ID och skapa appen i App Store Connect. Aktivera Sign in with Apple och Push Notifications.
 3. Lägg till App Store Connect API-integrationen med namnet **Companio App Store Connect** eller ändra samma namn i YAML-filen.

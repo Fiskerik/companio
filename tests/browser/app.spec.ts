@@ -4,7 +4,7 @@ test('demo navigation, conversation and persistence', async ({ page }, testInfo)
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await page.getByRole('button', { name: 'Utforska demo', exact: true }).click();
+  await page.getByRole('button', { name: 'Fortsätt utan inloggning', exact: true }).click();
   await expect(page.getByText('Demoläge · Alla profiler och träffar är exempel')).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Upptäck', exact: true })).toHaveAttribute(
     'aria-selected',
@@ -24,7 +24,14 @@ test('demo navigation, conversation and persistence', async ({ page }, testInfo)
   await page.getByRole('button', { name: 'Skicka', exact: true }).click();
   await expect(page.getByText('Ska vi ses på en fika?', { exact: true })).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Utforska demo', exact: true }).click();
+  await page.getByRole('button', { name: 'Fortsätt utan inloggning', exact: true }).click();
+  await page.getByRole('tab', { name: 'Inkorg', exact: true }).click();
+  await page.getByRole('button', { name: 'Sara & David', exact: true }).click();
+  await expect(page.getByText('Ska vi ses på en fika?', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Profil', exact: true }).click();
+  await page.getByRole('button', { name: 'Tillbaka till inloggning', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Fortsätt utan inloggning', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Fortsätt utan inloggning', exact: true }).click();
   await page.getByRole('tab', { name: 'Inkorg', exact: true }).click();
   await page.getByRole('button', { name: 'Sara & David', exact: true }).click();
   await expect(page.getByText('Ska vi ses på en fika?', { exact: true })).toBeVisible();
@@ -34,7 +41,7 @@ test('demo navigation, conversation and persistence', async ({ page }, testInfo)
 test('English interface and event creation', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'EN', exact: true }).click();
-  await page.getByRole('button', { name: 'Explore demo', exact: true }).click();
+  await page.getByRole('button', { name: 'Continue without login', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Find your people', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create a meetup', exact: true }).first().click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Sunday park coffee');

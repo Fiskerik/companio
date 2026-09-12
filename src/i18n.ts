@@ -58,6 +58,12 @@ export const dictionary = {
   code: ['Engångskod från mejlet', 'One-time code from your email'],
   verify: ['Logga in', 'Sign in'],
   demo: ['Utforska demo', 'Explore demo'],
+  skipLogin: ['Fortsätt utan inloggning', 'Continue without login'],
+  skipLoginIntro: [
+    'Prova med exempelprofiler utan konto. Inloggningen kan vänta.',
+    'Try example profiles without an account. Sign-in can wait.',
+  ],
+  backToLogin: ['Tillbaka till inloggning', 'Back to sign in'],
   demoNotice: [
     'Demoläge · Alla profiler och träffar är exempel',
     'Demo mode · All profiles and meetups are examples',

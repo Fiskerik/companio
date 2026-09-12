@@ -1,4 +1,5 @@
 const release = process.argv.includes('--release');
+const testflight = process.argv.includes('--testflight');
 const demo = process.env.EXPO_PUBLIC_DEMO_ENABLED !== 'false';
 const required =
   release || !demo
@@ -9,7 +10,7 @@ const required =
         'EXPO_PUBLIC_PRIVACY_URL',
       ]
     : [];
-if (release) required.push('BUNDLE_ID', 'APP_STORE_APPLE_ID');
+if (release || testflight) required.push('BUNDLE_ID', 'APP_STORE_APPLE_ID');
 const missing = required.filter((k) => !process.env[k]);
 if (release && demo) missing.push('EXPO_PUBLIC_DEMO_ENABLED=false');
 if (missing.length) {
