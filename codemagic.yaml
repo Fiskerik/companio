@@ -61,9 +61,25 @@ workflows:
           pod install
       - name: Increment iOS build number
         script: |
+          set -euo pipefail
           cd "$CM_BUILD_DIR/ios"
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
-          agvtool new-version -all $((LATEST_BUILD_NUMBER + 1))
+          # Apple rejects an IPA when its CFBundleVersion has already been
+          # uploaded. Use the latest App Store value as the lower bound and
+          # Codemagic's project counter as a deterministic fallback.
+          LATEST_BUILD_NUMBER="$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null | tail -n 1 | tr -cd '0-9' || true)"
+          LATEST_BUILD_NUMBER="${LATEST_BUILD_NUMBER:-0}"
+          PROJECT_BUILD_NUMBER="${PROJECT_BUILD_NUMBER:-0}"
+          NEXT_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
+          if [ "$PROJECT_BUILD_NUMBER" -gt "$NEXT_BUILD_NUMBER" ]; then
+            NEXT_BUILD_NUMBER="$PROJECT_BUILD_NUMBER"
+          fi
+          echo "Using iOS build number: $NEXT_BUILD_NUMBER (latest on App Store: $LATEST_BUILD_NUMBER)"
+          agvtool new-version -all "$NEXT_BUILD_NUMBER"
+          APPLIED_BUILD_NUMBER="$(agvtool what-version -terse | tr -d '[:space:]')"
+          if [ "$APPLIED_BUILD_NUMBER" != "$NEXT_BUILD_NUMBER" ]; then
+            echo "Build number verification failed: expected $NEXT_BUILD_NUMBER, got $APPLIED_BUILD_NUMBER"
+            exit 1
+          fi
       - name: Apply signing profiles
         # Mark the IPA as internal-testing-only so App Store Connect does not
         # require Apple's external beta-review metadata for this pilot.
