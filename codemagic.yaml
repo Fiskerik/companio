@@ -65,7 +65,10 @@ workflows:
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
           agvtool new-version -all $((LATEST_BUILD_NUMBER + 1))
       - name: Apply signing profiles
-        script: xcode-project use-profiles
+        # Mark the IPA as internal-testing-only so App Store Connect does not
+        # require Apple's external beta-review metadata for this pilot.
+        script: |
+          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
       - name: Archive signed app
         script: xcode-project build-ipa --workspace "ios/Companio.xcworkspace" --scheme "$XCODE_SCHEME"
     artifacts:
@@ -76,4 +79,6 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        beta_groups:
+          - Beta
         submit_to_app_store: false
