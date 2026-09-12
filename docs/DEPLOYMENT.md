@@ -33,7 +33,7 @@ Lägg endast dessa **publika** byggvärden i Vercel och Codemagic:
 EXPO_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=projektets publishable/anon-nyckel
 EXPO_PUBLIC_SUPPORT_EMAIL=verklig supportadress
-EXPO_PUBLIC_PRIVACY_URL=https://er-domän/integritet
+EXPO_PUBLIC_PRIVACY_URL=https://companio-kappa.vercel.app/privacy
 EXPO_PUBLIC_APP_URL=https://er-domän
 EXPO_PUBLIC_DEMO_ENABLED=false
 ```

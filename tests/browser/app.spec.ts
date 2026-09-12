@@ -42,3 +42,11 @@ test('English interface and event creation', async ({ page }) => {
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Sunday park coffee', { exact: true })).toBeVisible();
 });
+
+test('privacy policy is available at the public route', async ({ page }) => {
+  await page.goto('/privacy');
+  await expect(
+    page.getByRole('heading', { name: 'Integritetspolicy / Privacy policy', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('Dina rättigheter', { exact: true })).toBeVisible();
+});

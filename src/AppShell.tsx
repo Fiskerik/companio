@@ -39,6 +39,80 @@ const tabs: { id: string; icon: IconName; activeIcon: IconName }[] = [
   { id: 'favorites', icon: 'heart-outline', activeIcon: 'heart' },
   { id: 'profile', icon: 'person-circle-outline', activeIcon: 'person-circle' },
 ];
+
+function PrivacyPage() {
+  const support = process.env.EXPO_PUBLIC_SUPPORT_EMAIL || 'supportadressen behöver konfigureras';
+  const goHome = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.location.href = '/';
+  };
+  return (
+    <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
+      <View style={{ width: '100%', maxWidth: 860, alignSelf: 'center', gap: 26, paddingVertical: 24 }}>
+        <View style={S.between}>
+          <Logo />
+          <Button label="Companio" secondary onPress={goHome} />
+        </View>
+        <View style={[S.card, S.cardBody, { padding: 30, gap: 22 }]}>
+          <Text accessibilityRole="header" style={S.heading}>
+            Integritetspolicy / Privacy policy
+          </Text>
+          <Text style={S.muted}>Senast uppdaterad: 12 september 2026</Text>
+          <Text style={S.body}>
+            Companio hjälper vuxna att hitta socialt sällskap och skapa lokala träffar. Den här sidan
+            beskriver hur personuppgifter är tänkta att hanteras i tjänsten. Operatörens juridiska namn,
+            adress och slutliga kontaktuppgifter ska fyllas i innan publik lansering.
+          </Text>
+          <Text style={S.title}>Vilka uppgifter används?</Text>
+          <Text style={S.body}>
+            Vi kan behandla konto- och inloggningsuppgifter, namn, vuxenprofilbild, språk, område, intressen,
+            hushållstyp, valda preferenser, tillgänglighet, kontaktförfrågningar, meddelanden,
+            träffdeltagande, gruppmedlemskap, supportärenden och tekniska uppgifter som behövs för säker
+            drift. Barn får inga konton och ska inte identifieras med namn, födelsedatum, skola eller diagnos.
+          </Text>
+          <Text style={S.title}>Varför används uppgifterna?</Text>
+          <Text style={S.body}>
+            Uppgifterna används för att skapa konton, visa relevanta sällskap och träffar enligt dina
+            inställningar, leverera meddelanden och aviseringar, hantera deltagande, förebygga missbruk, svara
+            på support och uppfylla rättsliga skyldigheter. Privata meddelanden används inte för automatiserad
+            matchningsanalys.
+          </Text>
+          <Text style={S.title}>Plats och synlighet</Text>
+          <Text style={S.body}>
+            Du kan välja ort manuellt. Om du tillåter platsåtkomst används en ungefärlig plats för avstånd och
+            lokala förslag. Exakt bostadsadress visas inte offentligt. Tillgänglighet betyder att ett hushåll
+            vill ses under en angiven tid och upphör automatiskt när tiden passerat.
+          </Text>
+          <Text style={S.title}>Delning och leverantörer</Text>
+          <Text style={S.body}>
+            Uppgifter delas med leverantörer som behövs för inloggning, datalagring, bildlagring, pushnotiser,
+            drift och felövervakning. Tjänsten är planerad med Supabase i vald EU-region och Vercel för
+            webbpublicering. Aktuella leverantörer, biträdesavtal, eventuella överföringar och lagringstider
+            ska dokumenteras före lansering.
+          </Text>
+          <Text style={S.title}>Dina rättigheter</Text>
+          <Text style={S.body}>
+            Du kan begära tillgång, rättelse, radering, dataportabilitet eller begränsning enligt tillämplig
+            dataskyddslagstiftning. Kontoradering och dataexport ska kunna startas i appen. Du kan också lämna
+            klagomål till Integritetsskyddsmyndigheten (IMY) i Sverige.
+          </Text>
+          <Text style={S.title}>Kontakt</Text>
+          <Text style={S.body}>
+            Frågor om integritet: {support}. Ange den ansvariga juridiska personen och en fungerande
+            supportadress i denna text innan appen lanseras offentligt.
+          </Text>
+          <View style={{ backgroundColor: C.peach, borderRadius: 14, padding: 16 }}>
+            <Text style={S.muted}>
+              Detta är en publicerbar utvecklingsmall för Companio och ersätter inte juridisk granskning. Den
+              måste kompletteras med personuppgiftsansvarig, rättsliga grunder, fullständig leverantörslista,
+              lagringstider, internationella överföringar och incidentkontakt före skarp drift.
+            </Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
 function Welcome() {
   const { locale, setLocale, text, startDemo } = useApp();
   const { width } = useWindowDimensions();
@@ -266,6 +340,9 @@ function Shell() {
       setChat(null);
     }
   }, [state.household_id]);
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.pathname === '/privacy') {
+    return <PrivacyPage />;
+  }
   const nav: Navigation = {
     openEditor: (kind, options) => {
       setDetail(null);
