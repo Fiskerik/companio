@@ -27,6 +27,7 @@ describe('TestFlight login configuration', () => {
   it('ships the temporary skip-login option with the TestFlight validator', () => {
     const workflow = parse(readFileSync('codemagic.yaml', 'utf8')).workflows['ios-testflight'];
     expect(workflow.environment.vars.EXPO_PUBLIC_DEMO_ENABLED).toBe('true');
+    expect(workflow.environment.vars.EXPO_PUBLIC_TESTFLIGHT_DEMO).toBe('true');
     expect(
       workflow.scripts.some(
         (step: { script: string }) => step.script === 'node scripts/check-env.mjs --testflight',
@@ -35,6 +36,11 @@ describe('TestFlight login configuration', () => {
   });
   it('allows local TestFlight previews without backend credentials', () => {
     expect(validate('--testflight', { ...apple, EXPO_PUBLIC_DEMO_ENABLED: 'true' })).toContain('Demo build');
+  });
+  it('keeps the TestFlight preview enabled when a shared group overrides the general demo flag', () => {
+    expect(
+      validate('--testflight', { ...apple, EXPO_PUBLIC_DEMO_ENABLED: 'false', EXPO_PUBLIC_TESTFLIGHT_DEMO: 'true' }),
+    ).toContain('Demo build');
   });
   it('still requires Apple configuration for a local TestFlight preview', () => {
     expect(() => validate('--testflight', { EXPO_PUBLIC_DEMO_ENABLED: 'true' })).toThrow();

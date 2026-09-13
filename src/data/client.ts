@@ -36,7 +36,10 @@ const storage = {
 export const backendConfigured = Boolean(
   process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
 );
-export const demoEnabled = process.env.EXPO_PUBLIC_DEMO_ENABLED !== 'false';
+// TestFlight has its own explicit switch so a shared Codemagic environment
+// group cannot accidentally hide the local preview from the review build.
+export const demoEnabled =
+  process.env.EXPO_PUBLIC_TESTFLIGHT_DEMO === 'true' || process.env.EXPO_PUBLIC_DEMO_ENABLED !== 'false';
 export const supabase: SupabaseClient | null = backendConfigured
   ? createClient(process.env.EXPO_PUBLIC_SUPABASE_URL!, process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!, {
       auth: { storage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },

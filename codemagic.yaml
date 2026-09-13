@@ -42,6 +42,7 @@ workflows:
         BUNDLE_ID: com.fiskerik.companio
         # Temporary local preview; set false when account testing is ready.
         EXPO_PUBLIC_DEMO_ENABLED: 'true'
+        EXPO_PUBLIC_TESTFLIGHT_DEMO: 'true'
         XCODE_SCHEME: Companio
     triggering:
       events: [tag]

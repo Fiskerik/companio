@@ -1,6 +1,7 @@
 const release = process.argv.includes('--release');
 const testflight = process.argv.includes('--testflight');
-const demo = process.env.EXPO_PUBLIC_DEMO_ENABLED !== 'false';
+const demo =
+  process.env.EXPO_PUBLIC_TESTFLIGHT_DEMO === 'true' || process.env.EXPO_PUBLIC_DEMO_ENABLED !== 'false';
 const required =
   release || !demo
     ? [
