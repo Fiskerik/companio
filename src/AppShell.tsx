@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { AppProvider, useApp } from './data/AppProvider';
+import { Reveal } from './ui/Motion';
 import { backendConfigured, demoEnabled, supabase } from './data/client';
 import { canSeeAvailability } from './domain/rules';
 import { Art, Avatar, Button, Chip, Field, Icon, IconButton, Logo, type IconName } from './ui/components';
@@ -555,10 +556,10 @@ function Shell() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={C.green} />
           }
-          contentContainerStyle={{ padding: desktop ? 32 : 20, paddingBottom: 45 }}
+          contentContainerStyle={{ padding: desktop ? 26 : 14, paddingBottom: 32 }}
         >
           <View style={{ flexDirection: 'row', gap: 28, maxWidth: 1220, width: '100%', alignSelf: 'center' }}>
-            <View style={{ flex: 1, minWidth: 0 }}>
+            <Reveal key={tab} style={{ flex: 1, minWidth: 0 }}>
               {tab === 'discover' ? (
                 <Discover nav={nav} />
               ) : tab === 'people' ? (
@@ -570,7 +571,7 @@ function Shell() {
               ) : (
                 <Profile nav={nav} />
               )}
-            </View>
+            </Reveal>
             {width >= 1320 && tab === 'discover' && (
               <View style={{ width: 250, gap: 18, paddingTop: 7 }}>
                 <Text style={S.eyebrow}>{locale === 'sv' ? 'SÄLLSKAP I NÄRHETEN' : 'COMPANY NEARBY'}</Text>

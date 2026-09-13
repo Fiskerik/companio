@@ -10,6 +10,9 @@ import { CHILD_AGES, INTERESTS, validateParty, validateWindow } from '../domain/
 import { localInput, parseLocalInput } from '../i18n';
 import type { Command, Gathering, HouseholdKind, Payload } from '../domain/types';
 import { Button, Chip, Field, Sheet, Toggle, MediaImage } from './components';
+import { COMMUNITY_TEMPLATES, templateText } from '../domain/discovery';
+import { DateTimeField } from './DateTimeField';
+import { LanguagePreferences } from './LanguagePreferences';
 import { C, S } from './theme';
 
 const CITIES: [string, number, number][] = [
@@ -260,17 +263,12 @@ export function Onboarding() {
         {step === 1 && (
           <>
             <PlaceFields value={place} onChange={setPlace} />
-            <Text style={S.label}>{text('languages')}</Text>
-            <View style={S.wrap}>
-              {['sv', 'en', 'de'].map((l) => (
-                <Chip
-                  key={l}
-                  label={{ sv: 'Svenska', en: 'English', de: 'Deutsch' }[l]!}
-                  selected={langs.includes(l)}
-                  onPress={() => setLangs(langs.includes(l) ? langs.filter((x) => x !== l) : [...langs, l])}
-                />
-              ))}
-            </View>
+            <LanguagePreferences
+              languages={langs}
+              onLanguages={setLangs}
+              interests={interests}
+              onInterests={setInterests}
+            />
           </>
         )}
         {step === 2 && (
@@ -338,18 +336,33 @@ export interface EditorProps {
   targetType?: string;
   event?: Gathering;
   groupId?: string;
+  templateId?: string;
   onDone?: (result: Record<string, unknown>) => void;
 }
-export function Editor({ kind, onClose, targetId, targetType, event, groupId, onDone }: EditorProps) {
+export function Editor({
+  kind,
+  onClose,
+  targetId,
+  targetType,
+  event,
+  groupId,
+  templateId,
+  onDone,
+}: EditorProps) {
   const { state, command, text, locale, demo } = useApp();
   const me = state.households.find((h) => h.id === state.household_id)!;
+  const template = COMMUNITY_TEMPLATES.find((t) => t.id === templateId);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(10, 0, 0, 0);
   const later = new Date(tomorrow.getTime() + 2 * 3600000);
-  const [name, setName] = useState(kind === 'profile' ? state.adult?.name || '' : ''),
+  const [name, setName] = useState(
+      kind === 'profile' ? state.adult?.name || '' : template ? templateText(template.name, locale) : '',
+    ),
     [title, setTitle] = useState(event?.title || ''),
-    [description, setDescription] = useState(event?.description || ''),
+    [description, setDescription] = useState(
+      event?.description || (template ? templateText(template.description, locale) : ''),
+    ),
     [bio, setBio] = useState(me.bio),
     [activity, setActivity] = useState(event?.activity || 'coffee'),
     [start, setStart] = useState(localInput(event ? new Date(event.starts_at) : tomorrow)),
@@ -497,9 +510,30 @@ export function Editor({ kind, onClose, targetId, targetType, event, groupId, on
               />
             </>
           )}
-          <Text style={S.muted}>{text('timeHelp')}</Text>
-          <Field label={text('start')} value={start} onChangeText={setStart} />
-          <Field label={text('end')} value={end} onChangeText={setEnd} />
+          <DateTimeField
+            label={text('start')}
+            value={start}
+            minimum={new Date()}
+            onChange={(value) => {
+              const previous = Date.parse(parseLocalInput(start));
+              const duration = Date.parse(parseLocalInput(end)) - previous;
+              setStart(value);
+              setEnd(
+                localInput(
+                  new Date(
+                    Date.parse(parseLocalInput(value)) +
+                      Math.max(300000, Math.min(86400000, duration || 7200000)),
+                  ),
+                ),
+              );
+            }}
+          />
+          <DateTimeField
+            label={text('end')}
+            value={end}
+            minimum={new Date(parseLocalInput(start))}
+            onChange={setEnd}
+          />
           <View style={S.wrap}>
             {['with', 'without', 'either'].map((m) => (
               <Chip key={m} label={text(m)} selected={mode === m} onPress={() => setMode(m as typeof mode)} />
@@ -562,7 +596,12 @@ export function Editor({ kind, onClose, targetId, targetType, event, groupId, on
       )}
       {kind === 'group' && (
         <>
-          <Field label={text('name')} value={name} onChangeText={setName} maxLength={100} />
+          <Field
+            label={locale === 'sv' ? 'Sammanhangets namn' : 'Community name'}
+            value={name}
+            onChangeText={setName}
+            maxLength={100}
+          />
           <Field
             label={text('description')}
             value={description}
@@ -626,19 +665,12 @@ export function Editor({ kind, onClose, targetId, targetType, event, groupId, on
               />
             ))}
           </View>
-          <Text style={S.label}>{text('languages')}</Text>
-          <View style={S.wrap}>
-            {['sv', 'en', 'de'].map((l) => (
-              <Chip
-                key={l}
-                label={{ sv: 'Svenska', en: 'English', de: 'Deutsch' }[l]!}
-                selected={languages.includes(l)}
-                onPress={() =>
-                  setLanguages(languages.includes(l) ? languages.filter((x) => x !== l) : [...languages, l])
-                }
-              />
-            ))}
-          </View>
+          <LanguagePreferences
+            languages={languages}
+            onLanguages={setLanguages}
+            interests={interests}
+            onInterests={setInterests}
+          />
           {(me.kind === 'family' || me.kind === 'single_parent') && (
             <>
               <Text style={S.label}>{text('childAges')}</Text>

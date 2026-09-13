@@ -15,6 +15,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Ellipse, Path, Rect, Line, G } from 'react-native-svg';
+import { useReducedMotion } from './Motion';
 import { C, S, serif } from './theme';
 import { useApp } from '../data/AppProvider';
 import { supabase } from '../data/client';
@@ -55,7 +56,7 @@ export function Button({
         S.button,
         secondary && { backgroundColor: C.pale },
         danger && { backgroundColor: '#F8E6E0' },
-        small && { minHeight: 36, paddingVertical: 8, paddingHorizontal: 12 },
+        small && { minHeight: 44, paddingVertical: 8, paddingHorizontal: 12 },
         { opacity: disabled ? 0.4 : pressed ? 0.75 : 1 },
       ]}
     >
@@ -104,10 +105,16 @@ export function Chip({
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={label}
       accessibilityState={{ selected }}
       aria-pressed={onPress ? selected : undefined}
       onPress={onPress}
-      style={[S.pill, S.row, { gap: 5 }, selected && { backgroundColor: C.green }]}
+      style={[
+        S.pill,
+        S.row,
+        { gap: 5, ...(onPress ? { minHeight: 44 } : {}) },
+        selected && { backgroundColor: C.green },
+      ]}
     >
       {icon && <Icon name={icon} size={14} color={selected ? 'white' : C.green} />}
       <Text style={[S.pillText, selected && { color: 'white' }]}>{label}</Text>
@@ -175,8 +182,9 @@ export function Sheet({
   wide?: boolean;
 }) {
   const { text } = useApp();
+  const reducedMotion = useReducedMotion();
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible transparent animationType={reducedMotion ? 'none' : 'fade'} onRequestClose={onClose}>
       <View
         style={{
           flex: 1,

@@ -128,6 +128,7 @@ export interface Report {
   created_at: string;
 }
 export interface AppState {
+  demo_revision?: number;
   adult: Adult | null;
   household_id: Id | null;
   households: Household[];

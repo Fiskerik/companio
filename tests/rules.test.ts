@@ -74,9 +74,9 @@ describe('household discovery and privacy', () => {
     let s = createDemo();
     s.events[0].capacity = 4;
     s = demoCommand(s, 'event_join', { event_id: 'e1', adults: 2, children: 1 }).state;
-    expect(s.attendance.find((x) => x.household_id === 'me')?.status).toBe('waitlist');
+    expect(s.attendance.find((x) => x.household_id === 'me' && x.event_id === 'e1')?.status).toBe('waitlist');
     s = demoCommand(s, 'event_join', { event_id: 'e1', adults: 2, children: 1 }).state;
-    expect(s.attendance.filter((x) => x.household_id === 'me')).toHaveLength(1);
+    expect(s.attendance.filter((x) => x.household_id === 'me' && x.event_id === 'e1')).toHaveLength(1);
   });
   it('has both languages for every interface key', () => {
     for (const pair of Object.values(dictionary)) {

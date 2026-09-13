@@ -40,7 +40,7 @@ export const dictionary = {
   availability: ['När vill ni ses?', 'When are you free?'],
   nearbyEvents: ['Små planer. Fina möten.', 'Little plans. Lovely company.'],
   nearbySub: ['Hitta något att se fram emot nära dig.', 'Find something to look forward to nearby.'],
-  groups: ['Hitta ert sammanhang', 'Find your community'],
+  groups: ['Sammanhang', 'Communities'],
   groupsSub: ['Samma intresse. Fler att dela det med.', 'Shared interests. More people to share them with.'],
   available: ['Vill ses', 'Open to meeting'],
   seeAll: ['Visa alla', 'See all'],
@@ -240,6 +240,7 @@ export const dictionary = {
   completed: ['Sparat', 'Saved'],
   support: ['Kontakta oss', 'Contact us'],
   privacy: ['Integritetspolicy', 'Privacy policy'],
+  language_learning: ['Språkinlärning & språkutbyte', 'Language learning & exchange'],
 } as const;
 export type TextKey = keyof typeof dictionary;
 export function t(locale: Locale, key: string) {

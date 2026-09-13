@@ -7,6 +7,7 @@ import {
   type Gathering,
 } from '../domain/types';
 import { seatsAvailable, validateParty, validateWindow, isMatch } from '../domain/rules';
+import { COMMUNITY_TEMPLATES } from '../domain/discovery';
 
 const id = () => `demo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export function createDemo(now = new Date()): AppState {
@@ -88,7 +89,7 @@ export function createDemo(now = new Date()): AppState {
       ['Noah', 'Elias'],
       'couple',
       'Söndagspromenader, nya restauranger och spontana biokvällar. Alltid plats för nya vänner.',
-      ['walks', 'food', 'culture'],
+      ['walks', 'food', 'culture', 'language_learning', 'practice_es'],
       59.3,
       18.04,
       'Årsta, Stockholm',
@@ -98,12 +99,17 @@ export function createDemo(now = new Date()): AppState {
       ['Maja', 'Ali'],
       'family',
       'Utflykter med matsäck och väldigt opretentiös matlagning. Vi lär gärna känna andra familjer.',
-      ['outdoors', 'food', 'games'],
+      ['outdoors', 'food', 'games', 'language_learning', 'practice_sv'],
       59.29,
       18.09,
       'Hammarbyhöjden, Stockholm',
     ),
   ];
+  households[4].languages = ['sv', 'en', 'de'];
+  households[4].energy = 'quiet';
+  households[5].languages = ['en', 'ar'];
+  households[5].energy = 'lively';
+  households[5].child_ages = ['2–3', '7–10'];
   const event = (
     key: string,
     host: string,
@@ -185,8 +191,110 @@ export function createDemo(now = new Date()): AppState {
       'En kort tur till sjön med en lång paus för matsäck. Perfekt för små ben och stora samtal.',
     ),
   ];
+  events.push(
+    ...[
+      {
+        ...event(
+          'e5',
+          'h5',
+          'Språkfika – öva svenska tillsammans',
+          'language_learning',
+          1,
+          15,
+          'Bibliotekets café',
+          'either',
+          10,
+          'Vi pratar enkel svenska och hjälps åt. Engelska och arabiska går också bra. Alla nivåer är välkomna.',
+        ),
+        group_id: 'g3',
+      },
+      {
+        ...event(
+          'e6',
+          'h4',
+          'Hola! En promenad på spanska',
+          'language_learning',
+          1,
+          17,
+          'Årstavikens promenadstråk',
+          'without',
+          8,
+          'Vi övar spanska i lugn takt. Du får gärna hjälpa till på svenska eller tyska också.',
+        ),
+        group_id: 'g3',
+      },
+      {
+        ...event(
+          'e7',
+          'me',
+          'Vår fikastund vid vattnet',
+          'coffee',
+          2,
+          14,
+          'Kafé vid Årstaviken',
+          'either',
+          6,
+          'Vi har plats för fler runt bordet.',
+        ),
+        group_id: 'g1',
+      },
+      {
+        ...event(
+          'e8',
+          'h2',
+          'Middag & nya bekantskaper',
+          'food',
+          4,
+          18,
+          'Restaurang på Södermalm',
+          'without',
+          8,
+          'Vi bokar ett bord, var och en betalar sin mat.',
+        ),
+        group_id: 'g4',
+        cost: 'Mat betalas på plats',
+      },
+      {
+        ...event(
+          'e9',
+          'h3',
+          'Ny i stan? Ta en promenad',
+          'walks',
+          6,
+          11,
+          'Medborgarplatsen',
+          'either',
+          12,
+          'En enkel runda för dig som vill hitta nya vardagsvänner.',
+        ),
+        group_id: 'g5',
+      },
+      {
+        ...event(
+          'e10',
+          'h4',
+          'Bokprat på biblioteket',
+          'culture',
+          8,
+          16,
+          'Bibliotekets entré',
+          'without',
+          10,
+          'Berätta om en bok du tyckt om. Ingen gemensam läsläxa.',
+        ),
+        group_id: 'g7',
+      },
+    ],
+  );
+  events[0].group_id = 'g1';
+  events[1].group_id = 'g2';
+  events[3].group_id = 'g6';
   return {
     ...EMPTY_STATE,
+    blocked_ids: [],
+    reports: [],
+    conversation_preferences: [],
+    demo_revision: 2,
     adult: households[0].members[0],
     household_id: 'me',
     households,
@@ -311,11 +419,62 @@ export function createDemo(now = new Date()): AppState {
         area: 'Stockholm',
         approval: false,
       },
+      ...COMMUNITY_TEMPLATES.slice(2).map((template, i) => ({
+        id: `g${i + 3}`,
+        owner_household: i === 0 ? 'h5' : 'h4',
+        name: template.name[0],
+        description: template.description[0],
+        area: 'Stockholm',
+        approval: i === 1,
+      })),
     ],
     group_members: [
       { group_id: 'g1', household_id: 'h1', status: 'accepted' },
       { group_id: 'g2', household_id: 'h2', status: 'accepted' },
+      ...COMMUNITY_TEMPLATES.slice(2).map((_, i) => ({
+        group_id: `g${i + 3}`,
+        household_id: i === 0 ? 'h5' : 'h4',
+        status: 'accepted' as const,
+      })),
     ],
+  };
+}
+
+// Preserve saved conversations, profiles and user-created plans when adding new examples.
+export function upgradeDemo(saved: AppState, now = new Date()): AppState {
+  if ((saved.demo_revision || 0) >= 2) return saved;
+  const fresh = createDemo(now);
+  return {
+    ...saved,
+    demo_revision: 2,
+    events: [
+      ...saved.events,
+      ...fresh.events.filter(
+        (e) => /^e(?:[5-9]|10)$/.test(e.id) && !saved.events.some((old) => old.id === e.id),
+      ),
+    ],
+    groups: [...saved.groups, ...fresh.groups.filter((g) => !saved.groups.some((old) => old.id === g.id))],
+    attendance: [
+      ...saved.attendance,
+      ...fresh.attendance.filter(
+        (a) =>
+          !saved.events.some((e) => e.id === a.event_id) && !saved.attendance.some((old) => old.id === a.id),
+      ),
+    ],
+    group_members: [
+      ...saved.group_members,
+      ...fresh.group_members.filter((m) => !saved.groups.some((g) => g.id === m.group_id)),
+    ],
+    households: saved.households.map((h) => {
+      const updated = fresh.households.find((n) => n.id === h.id);
+      return (h.id === 'h4' || h.id === 'h5') && updated
+        ? {
+            ...h,
+            languages: updated.languages,
+            interests: [...new Set([...h.interests, ...updated.interests])],
+          }
+        : h;
+    }),
   };
 }
 

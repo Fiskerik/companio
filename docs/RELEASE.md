@@ -9,12 +9,13 @@
 - Chatt med text, bilder för manuell granskning, svar, reaktioner och träffkort. Pollning och realtime för inkommande meddelanden.
 - Rapporteringsvy, moderatorroller, serverfunktion för modereringsåtgärder, dataexport och kontoradering.
 - Konfiguration för GitHub-kontroller, Vercel och Codemagic/TestFlight.
+- Kompakt dagstidslinje, utfällbara aktiviteter, fler hushållsfilter, språkutbyte, kalenderinmatning och åtta exempel på sammanhang med redigerbara mallar. Se [produktflöde och premiumförslag](PRODUCT-EXPERIENCE.md).
 
 ## Kända begränsningar
 
 Detta är en första implementation, inte ett påstående om att hela produktplanen är färdig. Följande behöver slutföras eller verifieras innan piloten/publik lansering:
 
-- Ingen ansluten Supabase-miljö, Vercel-publicering eller signerad iOS/TestFlight-körning har verifierats. E-post, Apple, lagring, realtime, push och återställning av säkerhetskopia behöver verkliga integrationstester.
+- Vercel har publicerats och användaren har bekräftat att lokal demo via TestFlight fungerar (13 september 2026). E-post, Apple, lagring, realtime, push och återställning av säkerhetskopia behöver fortfarande verkliga integrationstester; fungerande demo verifierar inte dessa.
 - Den vanliga ögonblicksbilden innehåller högst 500 senaste meddelanden över konversationerna. Serverfunktionen för äldre historik finns, men behöver anslutas i chattvyn.
 - Pushregistrering och leveranskö finns. Tryck på notis behöver kopplas till verifierad navigering via `resolve_notification`.
 - ”Planera igen” behöver bättre förifyllning och granskning av återinbjudna deltagare. Demonstrationens återkoppling och privata inbjudningar simulerar inte alla serverfall.

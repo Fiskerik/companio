@@ -1,5 +1,7 @@
 # Companio · Hitta ditt sällskap
 
+Det aktuella [produktflödet, kalendern, filtren, språkutbytet och förslaget för gratis/Plus](docs/PRODUCT-EXPERIENCE.md) beskrivs i produktunderlaget. Premium är ännu inte ett aktivt köp.
+
 En första fungerande utvecklingsversion för iPhone och webben: hushållsprofiler, kontaktförfrågningar, gemensam chatt, favoriter, tillgänglighet, lokala träffar och grupper. Svenska och engelska ingår. **Detta är ännu inte en lanserad eller produktionsgodkänd tjänst.**
 
 ## En projektmapp, ett GitHub-repo

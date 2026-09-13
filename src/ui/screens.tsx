@@ -20,11 +20,12 @@ import {
   distanceKm,
   householdName,
   isMatch,
-  matchingHouseholds,
   seatsAvailable,
   validateParty,
 } from '../domain/rules';
 import type { Availability, Community, Conversation, Gathering, Household, Message } from '../domain/types';
+import { filterPeople, initialPeopleFilters, languageName, practiceLanguages } from '../domain/discovery';
+import { PeopleFilterSheet } from './PeopleFilters';
 import { formatDate } from '../i18n';
 import {
   Art,
@@ -60,6 +61,7 @@ const icons: Record<string, React.ComponentProps<typeof Icon>['name']> = {
   culture: 'color-palette-outline',
   playground: 'sunny-outline',
   exercise: 'bicycle-outline',
+  language_learning: 'language-outline',
 };
 const safely = (p: Promise<unknown>) => void p.catch(() => {});
 
@@ -151,201 +153,21 @@ export function EventCard({ event, onPress }: { event: Gathering; onPress: () =>
     </Pressable>
   );
 }
-export function Discover({ nav }: { nav: Navigation }) {
-  const { state, text, locale } = useApp();
-  const { width } = useWindowDimensions();
-  const [when, setWhen] = useState('all'),
-    [mode, setMode] = useState('all');
-  const me = state.households.find((h) => h.id === state.household_id)!;
-  const now = Date.now();
-  const endDay = new Date();
-  endDay.setHours(23, 59, 59, 999);
-  const events = state.events
-    .filter(
-      (e) =>
-        e.status === 'active' &&
-        Date.parse(e.starts_at) > now &&
-        !state.blocked_ids.includes(e.host_household) &&
-        distanceKm(me, e) <= me.radius_km &&
-        (mode === 'all' || e.child_mode === mode || e.child_mode === 'either') &&
-        (when === 'all' ||
-          Date.parse(e.starts_at) < (when === 'today' ? endDay.getTime() : now + 7 * 86400000)),
-    )
-    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-  const slots = state.availability.filter(
-    (a) =>
-      a.household_id !== me.id &&
-      canSeeAvailability(state, a, now) &&
-      state.households.some((h) => h.id === a.household_id && distanceKm(me, h) <= me.radius_km),
-  );
-  return (
-    <View style={{ gap: 29 }}>
-      <View style={[S.between, { alignItems: 'flex-start' }]}>
-        <View style={{ flex: 1, gap: 8 }}>
-          <Text style={S.eyebrow}>
-            {locale === 'sv' ? 'GÖR PLATS FÖR LITE SÄLLSKAP' : 'MAKE ROOM FOR GOOD COMPANY'}
-          </Text>
-          <Text accessibilityRole="header" style={S.heading}>
-            {text('nearbyEvents')}
-          </Text>
-          <Text style={S.muted}>{text('nearbySub')}</Text>
-        </View>
-        {width > 700 && (
-          <Button label={text('createEvent')} icon="add" onPress={() => nav.openEditor('event')} />
-        )}
-      </View>
-      <View
-        style={{
-          backgroundColor: C.lime,
-          borderRadius: 20,
-          padding: 22,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 18,
-        }}
-      >
-        <View
-          style={{
-            width: 50,
-            height: 50,
-            borderRadius: 25,
-            backgroundColor: '#F5F7E9',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Icon name="sunny-outline" size={27} />
-        </View>
-        <View style={{ flex: 1, gap: 5 }}>
-          <Text style={{ fontFamily: serif, fontSize: 23, color: C.ink }}>
-            {locale === 'sv' ? 'En lucka i kalendern?' : 'A little room in your calendar?'}
-          </Text>
-          <Text style={[S.muted, { fontSize: 13, color: '#58694C' }]}>
-            {locale === 'sv'
-              ? 'Berätta när ni vill ses. Resten börjar med ett hej.'
-              : 'Share when you’re free. The rest starts with a hello.'}
-          </Text>
-        </View>
-        <IconButton
-          name="arrow-forward"
-          label={text('availability')}
-          onPress={() => nav.openEditor('availability')}
-        />
-      </View>
-      <View style={[S.between, { flexWrap: 'wrap' }]}>
-        <View style={S.wrap}>
-          {['all', 'today', 'week'].map((v) => (
-            <Chip key={v} label={text(v)} selected={when === v} onPress={() => setWhen(v)} />
-          ))}
-        </View>
-        <View style={S.wrap}>
-          {['with', 'without'].map((v) => (
-            <Chip
-              key={v}
-              label={text(v)}
-              selected={mode === v}
-              onPress={() => setMode(mode === v ? 'all' : v)}
-            />
-          ))}
-        </View>
-      </View>
-      {events.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 18 }}>
-          {events.map((e) => (
-            <View
-              key={e.id}
-              style={{
-                width: width > 700 ? '47.9%' : '100%',
-                flexGrow: 1,
-                maxWidth: width > 700 ? '50%' : '100%',
-              }}
-            >
-              <EventCard event={e} onPress={() => nav.openEvent(e.id)} />
-            </View>
-          ))}
-        </View>
-      ) : (
-        <Empty title={text('noResults')} body={text('emptyEvents')}>
-          <Button label={text('createEvent')} onPress={() => nav.openEditor('event')} />
-        </Empty>
-      )}
-      {width <= 700 && (
-        <Button label={text('createEvent')} icon="add" onPress={() => nav.openEditor('event')} />
-      )}
-      {slots.length > 0 && (
-        <>
-          <View style={S.between}>
-            <Text style={S.title}>{text('available')}</Text>
-            <Text style={S.muted}>{locale === 'sv' ? 'Nära er' : 'Near you'}</Text>
-          </View>
-          <View style={{ gap: 10 }}>
-            {slots.slice(0, 3).map((a) => (
-              <AvailabilityCard key={a.id} slot={a} onPress={() => nav.openHousehold(a.household_id)} />
-            ))}
-          </View>
-        </>
-      )}
-      <View style={S.between}>
-        <View style={{ flex: 1, gap: 5 }}>
-          <Text style={S.title}>{text('groups')}</Text>
-          <Text style={S.muted}>{text('groupsSub')}</Text>
-        </View>
-        <IconButton label={text('createGroup')} name="add" onPress={() => nav.openEditor('group')} />
-      </View>
-      {state.groups
-        .filter((g) => !state.blocked_ids.includes(g.owner_household))
-        .map((g, i) => (
-          <Pressable
-            key={g.id}
-            accessibilityRole="button"
-            accessibilityLabel={g.name}
-            onPress={() => nav.openGroup(g.id)}
-            style={[S.card, S.row, { padding: 18 }]}
-          >
-            <View
-              style={{
-                width: 55,
-                height: 55,
-                borderRadius: 16,
-                backgroundColor: i % 2 ? C.peach : C.lime,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name={i % 2 ? 'dice-outline' : 'cafe-outline'} size={25} />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={[S.title, { fontSize: 16 }]}>{g.name}</Text>
-              <Text style={[S.muted, { fontSize: 12 }]}>
-                {g.area} ·{' '}
-                {state.group_members.filter((m) => m.group_id === g.id && m.status === 'accepted').length}{' '}
-                {text('members')}
-              </Text>
-            </View>
-            <Icon name="arrow-forward" size={18} />
-          </Pressable>
-        ))}
-      {!state.groups.length && (
-        <Empty title={text('groups')} body={text('groupsSub')}>
-          <Button label={text('createGroup')} onPress={() => nav.openEditor('group')} />
-        </Empty>
-      )}
-    </View>
-  );
-}
+export { Discover } from './DiscoverScreen';
 export function People({ nav }: { nav: Navigation }) {
   const { state, text, locale, command } = useApp();
-  const [search, setSearch] = useState(''),
-    [skipped, setSkipped] = useState<string[]>([]);
-  const matches = matchingHouseholds(state).filter(
-    (m) =>
-      !skipped.includes(m.household.id) &&
-      `${householdName(m.household)} ${m.household.area}`.toLowerCase().includes(search.toLowerCase()),
-  );
   const me = state.households.find((h) => h.id === state.household_id)!;
+  const [filters, setFilters] = useState(() => initialPeopleFilters(me.radius_km));
+  const [showFilters, setShowFilters] = useState(false);
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const matches = filterPeople(state, filters).filter((m) => !skipped.includes(m.household.id));
+  const defaults = initialPeopleFilters(me.radius_km);
+  const filterCount = Object.keys(defaults).filter(
+    (k) => k !== 'search' && filters[k as keyof typeof filters] !== defaults[k as keyof typeof defaults],
+  ).length;
   return (
-    <View style={{ gap: 24 }}>
-      <Text accessibilityRole="header" style={S.heading}>
+    <View style={{ gap: 14 }}>
+      <Text accessibilityRole="header" style={[S.heading, { fontSize: 28, lineHeight: 34 }]}>
         {text('people')}
       </Text>
       <Text style={S.muted}>
@@ -359,7 +181,44 @@ export function People({ nav }: { nav: Navigation }) {
         </Empty>
       ) : (
         <>
-          <Field label={text('search')} value={search} onChangeText={setSearch} />
+          <View style={[S.row, { alignItems: 'flex-end' }]}>
+            <View style={{ flex: 1 }}>
+              <Field
+                label={text('search')}
+                value={filters.search}
+                onChangeText={(search) => setFilters({ ...filters, search })}
+              />
+            </View>
+            <Button
+              secondary
+              icon="options-outline"
+              label={`${text('filters')}${filterCount ? ` (${filterCount})` : ''}`}
+              onPress={() => setShowFilters(true)}
+            />
+          </View>
+          <Text style={[S.muted, { fontSize: 12 }]}>
+            {matches.length} {locale === 'sv' ? 'hushåll inom dina val' : 'households within your choices'}
+          </Text>
+          {filterCount > 0 && (
+            <Button
+              small
+              secondary
+              label={text('clearFilters')}
+              onPress={() => setFilters(initialPeopleFilters(me.radius_km))}
+            />
+          )}
+          {showFilters && (
+            <PeopleFilterSheet
+              filters={filters}
+              onChange={setFilters}
+              count={matches.length}
+              onClose={() => setShowFilters(false)}
+              onProfile={() => {
+                setShowFilters(false);
+                nav.openEditor('profile');
+              }}
+            />
+          )}
           {matches.map(({ household: h, sharedInterests, sharedTime, distance }) => {
             const favorite = state.favorites.some((f) => f.target_id === h.id);
             const matched = isMatch(state, me.id, h.id);
@@ -368,7 +227,7 @@ export function People({ nav }: { nav: Navigation }) {
             );
             return (
               <View key={h.id} style={S.card}>
-                <View style={[S.cardBody, { gap: 17 }]}>
+                <View style={[S.cardBody, { gap: 11, padding: 15 }]}>
                   <View style={S.between}>
                     <Pressable
                       accessibilityRole="button"
@@ -379,7 +238,7 @@ export function People({ nav }: { nav: Navigation }) {
                       <View style={{ flexDirection: 'row' }}>
                         {h.members.map((m, i) => (
                           <View key={m.id} style={{ marginLeft: i ? -15 : 0 }}>
-                            <Avatar name={m.name} path={m.avatar_path} size={58} />
+                            <Avatar name={m.name} path={m.avatar_path} size={44} />
                           </View>
                         ))}
                       </View>
@@ -397,14 +256,30 @@ export function People({ nav }: { nav: Navigation }) {
                       onPress={() => safely(command('favorite_toggle', { target_id: h.id }))}
                     />
                   </View>
-                  <Text style={S.body}>{h.bio}</Text>
+                  <Text numberOfLines={2} style={[S.body, { fontSize: 14, lineHeight: 20 }]}>
+                    {h.bio}
+                  </Text>
                   <View style={S.wrap}>
                     <Chip label={text(h.kind)} />
-                    {sharedInterests.map((i) => (
-                      <Chip key={i} label={`${text('shared')}: ${text(i)}`} icon={icons[i]} />
-                    ))}
+                    {h.interests.includes('language_learning') && (
+                      <Chip label={text('language_learning')} icon="language-outline" />
+                    )}
+                    {sharedInterests
+                      .filter((i) => !i.startsWith('practice_'))
+                      .slice(0, 3)
+                      .map((i) => (
+                        <Chip key={i} label={`${text('shared')}: ${text(i)}`} icon={icons[i]} />
+                      ))}
                     {sharedTime && <Chip label={text('sharedTime')} icon="calendar-outline" />}
                   </View>
+                  {h.interests.includes('language_learning') && (
+                    <Text style={[S.muted, { fontSize: 12 }]}>
+                      {locale === 'sv' ? 'Pratar' : 'Speaks'}: {h.languages.map(languageName).join(', ')}
+                      {practiceLanguages(h.interests).length
+                        ? ` · ${locale === 'sv' ? 'Vill öva' : 'Practising'}: ${practiceLanguages(h.interests).map(languageName).join(', ')}`
+                        : ''}
+                    </Text>
+                  )}
                   <View style={S.between}>
                     <Button
                       secondary
@@ -911,9 +786,11 @@ export function HouseholdDetail({
       </Text>
       <Text style={S.body}>{h.bio}</Text>
       <View style={S.wrap}>
-        {h.interests.map((i) => (
-          <Chip key={i} label={text(i)} icon={icons[i]} />
-        ))}
+        {h.interests
+          .filter((i) => !i.startsWith('practice_'))
+          .map((i) => (
+            <Chip key={i} label={text(i)} icon={icons[i]} />
+          ))}
         <Chip label={text(h.child_mode)} />
       </View>
       {h.child_ages.length > 0 && (
@@ -922,8 +799,14 @@ export function HouseholdDetail({
         </Text>
       )}
       <Text style={S.muted}>
-        {text('languages')}: {h.languages.join(', ').toUpperCase()}
+        {locale === 'sv' ? 'Pratar' : 'Speaks'}: {h.languages.map(languageName).join(', ')}
       </Text>
+      {h.interests.includes('language_learning') && practiceLanguages(h.interests).length > 0 && (
+        <Text style={S.muted}>
+          {locale === 'sv' ? 'Vill öva' : 'Practising'}:{' '}
+          {practiceLanguages(h.interests).map(languageName).join(', ')}
+        </Text>
+      )}
       <Button
         label={favorite ? text('saved') : text('save')}
         icon={favorite ? 'heart' : 'heart-outline'}
@@ -1381,10 +1264,21 @@ export function Profile({ nav }: { nav: Navigation }) {
         </View>
         <Text style={S.body}>{me.bio || text('bio')}</Text>
         <View style={S.wrap}>
-          {me.interests.map((i) => (
-            <Chip key={i} label={text(i)} />
-          ))}
+          {me.interests
+            .filter((i) => !i.startsWith('practice_'))
+            .map((i) => (
+              <Chip key={i} label={text(i)} />
+            ))}
         </View>
+        <Text style={S.muted}>
+          {locale === 'sv' ? 'Pratar' : 'Speaks'}: {me.languages.map(languageName).join(', ')}
+        </Text>
+        {me.interests.includes('language_learning') && practiceLanguages(me.interests).length > 0 && (
+          <Text style={S.muted}>
+            {locale === 'sv' ? 'Vill öva' : 'Practising'}:{' '}
+            {practiceLanguages(me.interests).map(languageName).join(', ')}
+          </Text>
+        )}
         <AsyncButton secondary icon="image-outline" label={text('photo')} run={upload} />
         {me.members.length < 2 && ['couple', 'family'].includes(me.kind) && (
           <Button

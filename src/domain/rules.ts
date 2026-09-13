@@ -9,6 +9,7 @@ export const INTERESTS = [
   'culture',
   'playground',
   'exercise',
+  'language_learning',
 ] as const;
 export const CHILD_AGES = ['0–1', '2–3', '4–6', '7–10', '11–14', '15–17'];
 export function distanceKm(
@@ -66,7 +67,9 @@ export function matchingHouseholds(state: AppState, now = Date.now()) {
         compatibleChildren(me.child_mode, h.child_mode),
     )
     .map((h) => {
-      const sharedInterests = h.interests.filter((i) => me.interests.includes(i));
+      const sharedInterests = h.interests.filter(
+        (i) => !i.startsWith('practice_') && me.interests.includes(i),
+      );
       const sharedTime = state.availability.some(
         (a) =>
           a.household_id === h.id &&

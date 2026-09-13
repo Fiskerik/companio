@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState as NativeAppState } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { EMPTY_STATE, type AppState, type Command, type Payload, type Locale } from '../domain/types';
-import { createDemo, demoCommand } from './demo';
+import { createDemo, demoCommand, upgradeDemo } from './demo';
 import { supabase } from './client';
 import { t } from '../i18n';
 
@@ -140,7 +140,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.adult && parsed.households?.length) next = parsed;
+        if (parsed.adult && parsed.households?.length) next = upgradeDemo(parsed);
       }
     } catch {}
     demoRef.current = true;
