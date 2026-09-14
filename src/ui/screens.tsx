@@ -23,7 +23,16 @@ import {
   seatsAvailable,
   validateParty,
 } from '../domain/rules';
-import type { Availability, Community, Conversation, Gathering, Household, Message } from '../domain/types';
+import type {
+  AttendanceStatus,
+  Availability,
+  Community,
+  Conversation,
+  EventJoinResult,
+  Gathering,
+  Household,
+  Message,
+} from '../domain/types';
 import { filterPeople, initialPeopleFilters, languageName, practiceLanguages } from '../domain/discovery';
 import { PeopleFilterSheet } from './PeopleFilters';
 import { formatDate } from '../i18n';
@@ -49,7 +58,7 @@ export interface Navigation {
   openHousehold: (id: string) => void;
   openEvent: (id: string) => void;
   openGroup: (id: string) => void;
-  openChat: (id: string) => void;
+  openChat: (id: string, draft?: string) => void;
   go: (tab: string) => void;
 }
 const icons: Record<string, React.ComponentProps<typeof Icon>['name']> = {
@@ -384,16 +393,18 @@ export function Inbox({
   nav,
   selected,
   onBack,
+  draft,
 }: {
   nav: Navigation;
   selected: string | null;
   onBack: () => void;
+  draft?: string;
 }) {
   const { state, text, locale, command } = useApp();
   const [search, setSearch] = useState(''),
     [archived, setArchived] = useState(false);
   const c = state.conversations.find((x) => x.id === selected);
-  if (c) return <Chat conversation={c} nav={nav} onBack={onBack} />;
+  if (c) return <Chat conversation={c} nav={nav} onBack={onBack} draft={draft} />;
   const requests = state.contacts.filter(
     (c) => c.status === 'pending' && c.to_household === state.household_id,
   );
@@ -504,13 +515,15 @@ function Chat({
   conversation: c,
   nav,
   onBack,
+  draft,
 }: {
   conversation: Conversation;
   nav: Navigation;
   onBack: () => void;
+  draft?: string;
 }) {
   const { state, text, locale, command, demo } = useApp();
-  const [body, setBody] = useState(''),
+  const [body, setBody] = useState(draft || ''),
     [reply, setReply] = useState<Message | null>(null),
     [busy, setBusy] = useState(false),
     [localError, setLocalError] = useState(''),
@@ -524,6 +537,9 @@ function Chat({
   useEffect(() => {
     safely(command('conversation_preference', { conversation_id: c.id, read: true }));
   }, [c.id]);
+  useEffect(() => {
+    if (draft && !body) setBody(draft);
+  }, [draft]);
   const send = async (image_path?: string, event_id?: string) => {
     if (!body.trim() && !image_path && !event_id) return;
     setBusy(true);
@@ -885,6 +901,7 @@ export function EventDetail({
   const [a, setA] = useState('1'),
     [k, setK] = useState('0'),
     [localError, setError] = useState(''),
+    [submittedStatus, setSubmittedStatus] = useState<AttendanceStatus | null>(null),
     [again, setAgain] = useState(false),
     [feedback, setFeedback] = useState(false);
   const own = e.host_household === state.household_id;
@@ -904,7 +921,17 @@ export function EventDetail({
       return;
     }
     try {
-      await command('event_join', { event_id: e.id, adults: Number(a), children: Number(k) });
+      const result = (await command('event_join', {
+        event_id: e.id,
+        adults: Number(a),
+        children: Number(k),
+      })) as Partial<EventJoinResult>;
+      if (
+        result.attendance_status === 'accepted' ||
+        result.attendance_status === 'pending' ||
+        result.attendance_status === 'waitlist'
+      )
+        setSubmittedStatus(result.attendance_status);
     } catch (err) {
       setError(errorMessage(String(err), locale === 'en'));
     }
@@ -948,8 +975,16 @@ export function EventDetail({
           <Text style={S.muted}>{e.practical}</Text>
         </>
       )}
-      {booking && <Chip label={text(booking.status)} />}
-      {!own && !booking && !ended && e.status === 'active' && (
+      {(booking || submittedStatus) && (
+        <Chip
+          label={
+            (booking?.status || submittedStatus) === 'pending'
+              ? text('attendancePending')
+              : text(booking?.status || submittedStatus!)
+          }
+        />
+      )}
+      {!own && !booking && !submittedStatus && !ended && e.status === 'active' && (
         <>
           <Field label={text('adults')} value={a} onChangeText={setA} keyboardType="number-pad" />
           {e.child_mode !== 'without' && (
@@ -959,13 +994,21 @@ export function EventDetail({
         </>
       )}
       {localError && <Text style={{ color: C.red }}>{localError}</Text>}
-      {booking?.status === 'accepted' && chat && (
+      {(booking?.status || submittedStatus) === 'accepted' && chat && (
         <Button
           label={text('eventChat')}
           icon="chatbubbles-outline"
           onPress={() => {
             onClose();
-            nav.openChat(chat.id);
+            const draft =
+              e.activity === 'language_learning'
+                ? locale === 'sv'
+                  ? 'Hej! Vi kommer gärna på språkfikan. Vi vill gärna öva svenska tillsammans.'
+                  : 'Hi! We would love to join the language café and practise together.'
+                : locale === 'sv'
+                  ? 'Hej! Vi kommer gärna på träffen. Vi ser fram emot att ses.'
+                  : 'Hi! We would love to join the meetup. Looking forward to meeting you.';
+            nav.openChat(chat.id, draft);
           }}
         />
       )}
@@ -1065,16 +1108,7 @@ export function EventDetail({
           onPress={() => {
             onClose();
             nav.openEditor('event', {
-              onDone: async (result) => {
-                if (result.id)
-                  for (const b of state.attendance.filter(
-                    (a) =>
-                      a.event_id === e.id &&
-                      a.status === 'accepted' &&
-                      isMatch(state, state.household_id!, a.household_id),
-                  ))
-                    await command('event_invite', { event_id: result.id, target_id: b.household_id });
-              },
+              repeatFrom: e,
             });
           }}
         />

@@ -3,6 +3,11 @@ export type HouseholdKind = 'couple' | 'family' | 'single_parent' | 'solo';
 export type ChildMode = 'with' | 'without' | 'either';
 export type Visibility = 'matches' | 'nearby';
 export type Id = string;
+export type NotificationTarget =
+  | { kind: 'conversation'; id: Id }
+  | { kind: 'event'; id: Id }
+  | { kind: 'household'; id: Id }
+  | { kind: 'inbox' };
 export interface Adult {
   id: Id;
   name: string;
@@ -103,8 +108,14 @@ export interface Attendance {
   household_id: Id;
   adults: number;
   children: number;
-  status: 'pending' | 'accepted' | 'waitlist' | 'cancelled';
+  status: AttendanceStatus | 'cancelled';
   created_at: string;
+}
+export type AttendanceStatus = 'accepted' | 'pending' | 'waitlist';
+export interface EventJoinResult {
+  ok: true;
+  event_id: Id;
+  attendance_status: AttendanceStatus;
 }
 export interface Community {
   id: Id;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, Share, Text, View, Linking } from 'react-native';
 import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
@@ -6,7 +6,7 @@ import { useApp } from '../data/AppProvider';
 import { useApp as useContextApp } from '../data/AppProvider';
 import { supabase } from '../data/client';
 import { pickAndUploadImage } from '../data/media';
-import { CHILD_AGES, INTERESTS, validateParty, validateWindow } from '../domain/rules';
+import { CHILD_AGES, INTERESTS, householdName, validateParty, validateWindow } from '../domain/rules';
 import { localInput, parseLocalInput } from '../i18n';
 import type { Command, Gathering, HouseholdKind, Payload } from '../domain/types';
 import { Button, Chip, Field, Sheet, Toggle, MediaImage } from './components';
@@ -335,6 +335,7 @@ export interface EditorProps {
   targetId?: string;
   targetType?: string;
   event?: Gathering;
+  repeatFrom?: Gathering;
   groupId?: string;
   templateId?: string;
   onDone?: (result: Record<string, unknown>) => void;
@@ -345,6 +346,7 @@ export function Editor({
   targetId,
   targetType,
   event,
+  repeatFrom,
   groupId,
   templateId,
   onDone,
@@ -352,6 +354,7 @@ export function Editor({
   const { state, command, text, locale, demo } = useApp();
   const me = state.households.find((h) => h.id === state.household_id)!;
   const template = COMMUNITY_TEMPLATES.find((t) => t.id === templateId);
+  const repeatSource = repeatFrom && !event ? repeatFrom : undefined;
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(10, 0, 0, 0);
@@ -359,24 +362,28 @@ export function Editor({
   const [name, setName] = useState(
       kind === 'profile' ? state.adult?.name || '' : template ? templateText(template.name, locale) : '',
     ),
-    [title, setTitle] = useState(event?.title || ''),
+    [title, setTitle] = useState(event?.title || repeatSource?.title || ''),
     [description, setDescription] = useState(
-      event?.description || (template ? templateText(template.description, locale) : ''),
+      event?.description ||
+        repeatSource?.description ||
+        (template ? templateText(template.description, locale) : ''),
     ),
     [bio, setBio] = useState(me.bio),
-    [activity, setActivity] = useState(event?.activity || 'coffee'),
+    [activity, setActivity] = useState(event?.activity || repeatSource?.activity || 'coffee'),
     [start, setStart] = useState(localInput(event ? new Date(event.starts_at) : tomorrow)),
     [end, setEnd] = useState(localInput(event ? new Date(event.ends_at) : later)),
-    [mode, setMode] = useState(event?.child_mode || me.child_mode),
+    [mode, setMode] = useState(event?.child_mode || repeatSource?.child_mode || me.child_mode),
     [visibility, setVisibility] = useState('matches'),
-    [eventVisibility, setEventVisibility] = useState(event?.visibility || 'public'),
-    [location, setLocation] = useState(event?.location || ''),
-    [capacity, setCapacity] = useState(String(event?.capacity || 8)),
+    [eventVisibility, setEventVisibility] = useState(
+      event?.visibility || repeatSource?.visibility || 'public',
+    ),
+    [location, setLocation] = useState(event?.location || repeatSource?.location || ''),
+    [capacity, setCapacity] = useState(String(event?.capacity || repeatSource?.capacity || 8)),
     [adults, setAdults] = useState('1'),
     [children, setChildren] = useState('0'),
-    [cost, setCost] = useState(event?.cost || ''),
-    [practical, setPractical] = useState(event?.practical || ''),
-    [approval, setApproval] = useState(event?.approval || false),
+    [cost, setCost] = useState(event?.cost || repeatSource?.cost || ''),
+    [practical, setPractical] = useState(event?.practical || repeatSource?.practical || ''),
+    [approval, setApproval] = useState(event?.approval ?? repeatSource?.approval ?? false),
     [greeting, setGreeting] = useState(''),
     [reason, setReason] = useState(''),
     [radius, setRadius] = useState(String(me.radius_km)),
@@ -389,7 +396,30 @@ export function Editor({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [token, setToken] = useState(''),
-    [confirm, setConfirm] = useState('');
+    [confirm, setConfirm] = useState(''),
+    [eventStep, setEventStep] = useState(1),
+    [advanced, setAdvanced] = useState(false),
+    [selectedInvites, setSelectedInvites] = useState<string[]>([]);
+  const repeatCandidates = repeatSource
+    ? state.attendance
+        .filter((a) => a.event_id === repeatSource.id && a.status === 'accepted' && a.household_id !== me.id)
+        .map((a) => state.households.find((h) => h.id === a.household_id))
+        .filter((h): h is NonNullable<typeof h> => Boolean(h))
+    : [];
+  const suggestedTitle = (value: string) => {
+    const titles: Record<string, [string, string]> = {
+      coffee: ['Fika i närheten', 'Coffee nearby'],
+      walks: ['Promenad tillsammans', 'Walk together'],
+      playground: ['Lekparkshäng', 'Playground hangout'],
+      games: ['Spelkväll', 'Game night'],
+      food: ['Middag tillsammans', 'Dinner together'],
+      language_learning: ['Språkfika', 'Language café'],
+    };
+    return titles[value]?.[locale === 'sv' ? 0 : 1] || text(value);
+  };
+  useEffect(() => {
+    if (kind === 'event' && !event && !repeatSource && !title.trim()) setTitle(suggestedTitle(activity));
+  }, []);
   const labels: Record<EditorKind, string> = {
     availability: 'availability',
     event: 'createEvent',
@@ -476,6 +506,16 @@ export function Editor({
         action = 'account_delete';
       }
       const result = await command(action, p);
+      if (kind === 'event' && !event && result.id && selectedInvites.length) {
+        for (const household_id of selectedInvites) {
+          await command('event_invite', {
+            event_id: result.id,
+            target_id: household_id,
+            reinvite: Boolean(repeatSource),
+            source_event_id: repeatSource?.id,
+          });
+        }
+      }
       if (kind === 'partner') {
         setToken(String(result.token));
       } else {
@@ -488,18 +528,72 @@ export function Editor({
       setBusy(false);
     }
   };
+  const nextEventStep = () => {
+    try {
+      if (eventStep === 1 && !title.trim()) throw Error('REQUIRED');
+      if (
+        eventStep === 2 &&
+        (!location.trim() || !validateWindow(parseLocalInput(start), parseLocalInput(end)))
+      )
+        throw Error(!location.trim() ? 'REQUIRED' : 'INVALID_TIME');
+      if (
+        eventStep === 3 &&
+        (!validateParty(Number(adults), Number(children)) ||
+          Number(capacity) < Number(adults) + Number(children))
+      )
+        throw Error('INVALID_PARTY');
+      setError('');
+      if (eventStep < 3) setEventStep(eventStep + 1);
+      else void submit();
+    } catch (e) {
+      setError(errorMessage(String(e), locale === 'en'));
+    }
+  };
   return (
     <Sheet title={event ? text('edit') : text(labels[kind])} onClose={onClose}>
-      {(kind === 'event' || kind === 'availability') && (
+      {kind === 'event' && (
         <>
-          <Text style={S.label}>{text('activity')}</Text>
-          <View style={S.wrap}>
-            {INTERESTS.map((i) => (
-              <Chip key={i} label={text(i)} selected={activity === i} onPress={() => setActivity(i)} />
+          <View style={[S.row, { justifyContent: 'space-between' }]}>
+            {[1, 2, 3].map((step) => (
+              <View key={step} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: eventStep >= step ? C.green : C.border,
+                  }}
+                >
+                  <Text style={{ color: eventStep >= step ? 'white' : C.muted, fontWeight: '700' }}>
+                    {step}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 11, color: C.muted }}>
+                  {locale === 'sv'
+                    ? ['Aktivitet', 'Tid & plats', 'Deltagare'][step - 1]
+                    : ['Activity', 'Time & place', 'Attendees'][step - 1]}
+                </Text>
+              </View>
             ))}
           </View>
-          {kind === 'event' && (
+          {eventStep === 1 && (
             <>
+              <Text style={S.label}>{text('activity')}</Text>
+              <View style={S.wrap}>
+                {INTERESTS.map((i) => (
+                  <Chip
+                    key={i}
+                    label={text(i)}
+                    selected={activity === i}
+                    onPress={() => {
+                      setActivity(i);
+                      if (!title.trim() || title === suggestedTitle(activity)) setTitle(suggestedTitle(i));
+                    }}
+                  />
+                ))}
+              </View>
               <Field label={text('title')} value={title} onChangeText={setTitle} maxLength={100} />
               <Field
                 label={text('description')}
@@ -510,6 +604,156 @@ export function Editor({
               />
             </>
           )}
+          {eventStep === 2 && (
+            <>
+              <DateTimeField
+                label={text('start')}
+                value={start}
+                minimum={new Date()}
+                onChange={(value) => {
+                  const previous = Date.parse(parseLocalInput(start));
+                  const duration = Date.parse(parseLocalInput(end)) - previous;
+                  setStart(value);
+                  setEnd(
+                    localInput(
+                      new Date(
+                        Date.parse(parseLocalInput(value)) +
+                          Math.max(300000, Math.min(86400000, duration || 7200000)),
+                      ),
+                    ),
+                  );
+                }}
+              />
+              <DateTimeField
+                label={text('end')}
+                value={end}
+                minimum={new Date(parseLocalInput(start))}
+                onChange={setEnd}
+              />
+              <Field label={text('location')} value={location} onChangeText={setLocation} maxLength={300} />
+            </>
+          )}
+          {eventStep === 3 && (
+            <>
+              <View style={S.wrap}>
+                {['with', 'without', 'either'].map((m) => (
+                  <Chip
+                    key={m}
+                    label={text(m)}
+                    selected={mode === m}
+                    onPress={() => setMode(m as typeof mode)}
+                  />
+                ))}
+              </View>
+              <Field
+                label={text('adults')}
+                value={adults}
+                keyboardType="number-pad"
+                onChangeText={setAdults}
+              />
+              <Field
+                label={text('children')}
+                value={children}
+                keyboardType="number-pad"
+                onChangeText={setChildren}
+              />
+              <Field
+                label={text('capacity')}
+                value={capacity}
+                onChangeText={setCapacity}
+                keyboardType="number-pad"
+              />
+              {!event && (
+                <>
+                  <View style={S.wrap}>
+                    {['public', 'private'].map((v) => (
+                      <Chip
+                        key={v}
+                        label={text(v)}
+                        selected={eventVisibility === v}
+                        onPress={() => setEventVisibility(v as 'public' | 'private')}
+                      />
+                    ))}
+                  </View>
+                  <Toggle label={text('approval')} value={approval} onChange={setApproval} />
+                  <Text style={S.muted}>
+                    {text(eventVisibility === 'public' ? 'publicHelp' : 'privateHelp')}
+                  </Text>
+                </>
+              )}
+              <Button
+                small
+                secondary
+                label={locale === 'sv' ? 'Fler inställningar' : 'More settings'}
+                onPress={() => setAdvanced(!advanced)}
+              />
+              {advanced && (
+                <>
+                  <Field
+                    label={text('cost')}
+                    value={cost}
+                    onChangeText={setCost}
+                    placeholder={text('free')}
+                  />
+                  <Field
+                    label={text('practical')}
+                    value={practical}
+                    onChangeText={setPractical}
+                    multiline
+                    maxLength={600}
+                  />
+                </>
+              )}
+              {repeatCandidates.length > 0 && (
+                <View style={{ gap: 8 }}>
+                  <Text style={S.label}>
+                    {locale === 'sv' ? 'Bjud in från förra träffen' : 'Invite from the previous meetup'}
+                  </Text>
+                  <Text style={S.muted}>
+                    {locale === 'sv'
+                      ? 'Välj själv vilka som ska få en ny inbjudan.'
+                      : 'Choose who should receive a new invitation.'}
+                  </Text>
+                  {repeatCandidates.map((h) => (
+                    <Chip
+                      key={h.id}
+                      label={householdName(h)}
+                      selected={selectedInvites.includes(h.id)}
+                      onPress={() =>
+                        setSelectedInvites(
+                          selectedInvites.includes(h.id)
+                            ? selectedInvites.filter((id) => id !== h.id)
+                            : [...selectedInvites, h.id],
+                        )
+                      }
+                    />
+                  ))}
+                </View>
+              )}
+              <View style={[S.card, { gap: 6, padding: 14 }]}>
+                <Text style={S.title}>{locale === 'sv' ? 'Sammanfattning' : 'Summary'}</Text>
+                <Text style={S.muted}>
+                  {title || (locale === 'sv' ? 'Ingen rubrik ännu' : 'No title yet')}
+                </Text>
+                <Text style={S.muted}>
+                  {location || (locale === 'sv' ? 'Ingen mötesplats ännu' : 'No meeting place yet')}
+                </Text>
+                <Text style={S.muted}>
+                  {text(mode)} · {capacity} {locale === 'sv' ? 'personer' : 'people'}
+                </Text>
+              </View>
+            </>
+          )}
+        </>
+      )}
+      {kind === 'availability' && (
+        <>
+          <Text style={S.label}>{text('activity')}</Text>
+          <View style={S.wrap}>
+            {INTERESTS.map((i) => (
+              <Chip key={i} label={text(i)} selected={activity === i} onPress={() => setActivity(i)} />
+            ))}
+          </View>
           <DateTimeField
             label={text('start')}
             value={start}
@@ -551,47 +795,6 @@ export function Editor({
             ))}
           </View>
           <Text style={S.muted}>{text('visibilityHelp')}</Text>
-        </>
-      )}
-      {kind === 'event' && (
-        <>
-          {!event && (
-            <View style={S.wrap}>
-              {['public', 'private'].map((v) => (
-                <Chip
-                  key={v}
-                  label={text(v)}
-                  selected={eventVisibility === v}
-                  onPress={() => setEventVisibility(v as 'public' | 'private')}
-                />
-              ))}
-            </View>
-          )}
-          <Text style={S.muted}>{text(eventVisibility === 'public' ? 'publicHelp' : 'privateHelp')}</Text>
-          <Field label={text('location')} value={location || ''} onChangeText={setLocation} maxLength={300} />
-          <Field
-            label={text('capacity')}
-            value={capacity}
-            onChangeText={setCapacity}
-            keyboardType="number-pad"
-          />
-          {!event && (
-            <Field
-              label={text('children')}
-              value={children}
-              onChangeText={setChildren}
-              keyboardType="number-pad"
-            />
-          )}
-          <Field label={text('cost')} value={cost} onChangeText={setCost} placeholder={text('free')} />
-          <Field
-            label={text('practical')}
-            value={practical}
-            onChangeText={setPractical}
-            multiline
-            maxLength={600}
-          />
-          {!event && <Toggle label={text('approval')} value={approval} onChange={setApproval} />}
         </>
       )}
       {kind === 'group' && (
@@ -747,22 +950,40 @@ export function Editor({
           {error}
         </Text>
       )}
-      <Button
-        label={
-          busy
-            ? '…'
-            : kind === 'contact'
-              ? text('send')
-              : kind === 'partner'
-                ? token
-                  ? text('done')
-                  : text('invite')
-                : text('save')
-        }
-        disabled={busy}
-        danger={kind === 'delete' || kind === 'leave'}
-        onPress={() => (kind === 'partner' && token ? onClose() : void submit())}
-      />
+      {kind === 'event' ? (
+        <View style={S.row}>
+          {eventStep > 1 && (
+            <Button
+              secondary
+              label={locale === 'sv' ? 'Föregående' : 'Back'}
+              disabled={busy}
+              onPress={() => setEventStep(eventStep - 1)}
+            />
+          )}
+          <Button
+            label={busy ? '…' : eventStep < 3 ? (locale === 'sv' ? 'Nästa' : 'Next') : text('save')}
+            disabled={busy}
+            onPress={nextEventStep}
+          />
+        </View>
+      ) : (
+        <Button
+          label={
+            busy
+              ? '…'
+              : kind === 'contact'
+                ? text('send')
+                : kind === 'partner'
+                  ? token
+                    ? text('done')
+                    : text('invite')
+                  : text('save')
+          }
+          disabled={busy}
+          danger={kind === 'delete' || kind === 'leave'}
+          onPress={() => (kind === 'partner' && token ? onClose() : void submit())}
+        />
+      )}
     </Sheet>
   );
 }

@@ -335,12 +335,26 @@ function Welcome() {
   );
 }
 function Shell() {
-  const { state, demo, ready, session, text, locale, error, clearError, refresh, refreshing } = useApp();
+  const {
+    state,
+    demo,
+    ready,
+    session,
+    text,
+    locale,
+    error,
+    clearError,
+    refresh,
+    refreshing,
+    notificationTarget,
+    clearNotificationTarget,
+  } = useApp();
   const { width } = useWindowDimensions();
   const listingPreview = process.env.EXPO_PUBLIC_STORE_PREVIEW === 'true';
   const desktop = width >= 960;
   const [tab, setTab] = useState('discover'),
     [chat, setChat] = useState<string | null>(null),
+    [chatDraft, setChatDraft] = useState<string | undefined>(),
     [editor, setEditor] = useState<(Partial<EditorProps> & { kind: EditorKind }) | null>(null),
     [detail, setDetail] = useState<{ kind: 'household' | 'event' | 'group'; id: string } | null>(null);
   const [, tick] = useState(0);
@@ -376,17 +390,27 @@ function Shell() {
       setEditor(null);
       setDetail({ kind: 'group', id });
     },
-    openChat: (id) => {
+    openChat: (id, draft) => {
       setDetail(null);
       setEditor(null);
       setChat(id);
+      setChatDraft(draft);
       setTab('inbox');
     },
     go: (t) => {
       setTab(t);
       setChat(null);
+      setChatDraft(undefined);
     },
   };
+  useEffect(() => {
+    if (!ready || !state.household_id || !notificationTarget) return;
+    if (notificationTarget.kind === 'conversation') nav.openChat(notificationTarget.id);
+    else if (notificationTarget.kind === 'event') nav.openEvent(notificationTarget.id);
+    else if (notificationTarget.kind === 'household') nav.openHousehold(notificationTarget.id);
+    else nav.go('inbox');
+    clearNotificationTarget();
+  }, [ready, state.household_id, notificationTarget]);
   if (!ready)
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -565,7 +589,15 @@ function Shell() {
               ) : tab === 'people' ? (
                 <People nav={nav} />
               ) : tab === 'inbox' ? (
-                <Inbox nav={nav} selected={chat} onBack={() => setChat(null)} />
+                <Inbox
+                  nav={nav}
+                  selected={chat}
+                  draft={chatDraft}
+                  onBack={() => {
+                    setChat(null);
+                    setChatDraft(undefined);
+                  }}
+                />
               ) : tab === 'favorites' ? (
                 <Favorites nav={nav} />
               ) : (

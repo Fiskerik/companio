@@ -98,8 +98,10 @@ Deno.serve(async (request) => {
               },
               sound: 'default',
             },
-            kind: notification.kind,
-            reference_id: notification.reference_id,
+            data: {
+              kind: notification.kind,
+              reference_id: notification.reference_id,
+            },
           }),
           signal: AbortSignal.timeout(15000),
         });

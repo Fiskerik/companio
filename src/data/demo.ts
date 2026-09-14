@@ -636,8 +636,15 @@ export function demoCommand(
     const a = Number(p.adults),
       k = Number(p.children);
     if (!validateParty(a, k) || (e.child_mode === 'without' && k > 0)) throw Error('INVALID_PARTY');
-    if (s.attendance.some((x) => x.event_id === e.id && x.household_id === h && x.status !== 'cancelled'))
+    const existing = s.attendance.find(
+      (x) => x.event_id === e.id && x.household_id === h && x.status !== 'cancelled',
+    );
+    if (existing) {
+      result.ok = true;
+      result.event_id = e.id;
+      result.attendance_status = existing.status;
       return { state: s, result };
+    }
     const free = seatsAvailable(
       e.capacity,
       s.attendance.filter((a) => a.event_id === e.id),
@@ -654,6 +661,9 @@ export function demoCommand(
       created_at: now,
     });
     if (status === 'accepted') addConversation('event', e.id, e.title);
+    result.ok = true;
+    result.event_id = e.id;
+    result.attendance_status = status;
   } else if (action === 'event_cancel_attendance') {
     s.attendance.forEach((a) => {
       if (a.event_id === p.event_id && a.household_id === h) a.status = 'cancelled';

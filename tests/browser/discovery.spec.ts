@@ -54,6 +54,7 @@ test('language exchange filter finds a Swedish learner and a template creates a 
 test('calendar and time choices create a meetup without typing dates', async ({ page }, testInfo) => {
   await page.getByRole('button', { name: 'Skapa träff', exact: true }).first().click();
   await page.getByRole('textbox', { name: 'Rubrik', exact: true }).fill('Kalenderfika');
+  await page.getByRole('button', { name: 'Nästa', exact: true }).click();
   await page.getByRole('textbox', { name: 'Mötesplats', exact: true }).fill('Biblioteket');
   await page.getByRole('button', { name: /Start: Välj datum/ }).click();
   await page.getByRole('button', { name: 'Nästa månad', exact: true }).click();
@@ -70,10 +71,25 @@ test('calendar and time choices create a meetup without typing dates', async ({ 
   await page.getByRole('button', { name: '11', exact: true }).click();
   await page.getByRole('button', { name: 'Klar', exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath('calendar-form.png') });
+  await page.getByRole('button', { name: 'Nästa', exact: true }).click();
   await page.getByRole('button', { name: 'Spara', exact: true }).click();
   await page
     .getByRole('button', { name: /^Visa alla \d+ aktiviteter/ })
     .first()
     .click();
   await expect(page.getByRole('button', { name: 'Kalenderfika', exact: true })).toBeVisible();
+});
+
+test('accepted meetup opens a shared chat with an unsent greeting draft', async ({ page }) => {
+  await page
+    .getByRole('button', { name: /^Visa alla \d+ aktiviteter/ })
+    .first()
+    .click();
+  await page.getByRole('button', { name: 'Fika & små äventyr i parken', exact: true }).click();
+  await page.getByRole('button', { name: 'Häng med', exact: true }).click();
+  await expect(page.getByText('Du är anmäld', { exact: true }).last()).toBeVisible();
+  await page.getByRole('button', { name: 'Öppna träffchatten', exact: true }).click();
+  const message = page.getByRole('textbox', { name: 'Skriv ett meddelande…', exact: true });
+  await expect(message).toHaveValue('Hej! Vi kommer gärna på träffen. Vi ser fram emot att ses.');
+  await expect(page.getByRole('button', { name: 'Skicka', exact: true })).toBeVisible();
 });

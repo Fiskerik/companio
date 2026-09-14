@@ -274,10 +274,21 @@ begin
    if ev.host_household=h then raise exception 'HOST_MUST_CANCEL_EVENT'; end if;
    update attendance set status='cancelled' where event_id=ident and household_id=h;
    perform promote_waitlist(ident);
-  elsif ev.status<>'active' or ev.starts_at<=now() then raise exception 'EVENT_CLOSED';
-  elsif p_action='event_invite' then
+ elsif ev.status<>'active' or ev.starts_at<=now() then raise exception 'EVENT_CLOSED';
+ elsif p_action='event_invite' then
    target:=(p_payload->>'target_id')::uuid;
-   if ev.host_household<>h or not matched(h,target) then raise exception 'MATCH_REQUIRED'; end if;
+   if ev.host_household<>h or blocked(h,target) or not (
+     matched(h,target) or
+     (coalesce((p_payload->>'reinvite')::boolean,false) and exists(
+       select 1
+       from attendance previous_attendance
+       join events previous_event on previous_event.id=previous_attendance.event_id
+       where previous_attendance.event_id=(p_payload->>'source_event_id')::uuid
+         and previous_attendance.household_id=target
+         and previous_attendance.status='accepted'
+         and previous_event.host_household=h
+     ))
+   ) then raise exception 'MATCH_REQUIRED'; end if;
    insert into event_invitations values(ident,target) on conflict do nothing;
   else
    target:=h;
@@ -289,7 +300,10 @@ begin
     if not (p_payload->>'accept')::boolean then update attendance set status='cancelled' where event_id=ident and household_id=target; return '{"ok":true}'; end if;
    else
     a:=(p_payload->>'adults')::integer;k:=coalesce((p_payload->>'children')::integer,0);
-    if exists(select 1 from attendance where event_id=ident and household_id=h and status<>'cancelled') then return '{"ok":true}'; end if;
+    if exists(select 1 from attendance where event_id=ident and household_id=h and status<>'cancelled') then
+     select status into next_status from attendance where event_id=ident and household_id=h;
+     return jsonb_build_object('ok',true,'event_id',ident,'attendance_status',next_status);
+    end if;
    end if;
    if a is null or a not between 1 and 2 or k not between 0 and 12 or (ev.child_mode='without' and k>0) then raise exception 'INVALID_PARTY'; end if;
    select coalesce(sum(adults+children),0) into occupied from attendance where event_id=ident and status='accepted';
@@ -350,7 +364,13 @@ begin
  else raise exception 'UNKNOWN_ACTION';
  end if;
  insert into audit_events(user_id,action) values(u,p_action);
- return jsonb_build_object('ok',true,'id',ident,'conversation_id',conv);
+ return jsonb_build_object(
+   'ok',true,
+   'id',ident,
+   'conversation_id',conv,
+   'event_id',case when p_action='event_join' then ident end,
+   'attendance_status',case when p_action='event_join' then next_status end
+ );
 end $$;
 
 create function public.app_snapshot() returns jsonb language sql stable security invoker set search_path=public,pg_temp as $$

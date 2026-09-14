@@ -161,6 +161,7 @@ export const dictionary = {
   full: ['Fullbokat · väntelista', 'Full · join waitlist'],
   accepted: ['Du är anmäld', 'You are going'],
   pending: ['Inväntar svar', 'Awaiting approval'],
+  attendancePending: ['Inväntar värdens svar', "Waiting for the host's response"],
   waitlist: ['På väntelistan', 'On the waitlist'],
   cancelAttendance: ['Avboka deltagande', 'Cancel attendance'],
   cancelEvent: ['Ställ in träffen', 'Cancel meetup'],

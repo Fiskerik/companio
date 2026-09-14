@@ -73,9 +73,13 @@ describe('household discovery and privacy', () => {
   it('makes demo joins idempotent and counts capacity', () => {
     let s = createDemo();
     s.events[0].capacity = 4;
-    s = demoCommand(s, 'event_join', { event_id: 'e1', adults: 2, children: 1 }).state;
+    const first = demoCommand(s, 'event_join', { event_id: 'e1', adults: 2, children: 1 });
+    expect(first.result.attendance_status).toBe('waitlist');
+    s = first.state;
     expect(s.attendance.find((x) => x.household_id === 'me' && x.event_id === 'e1')?.status).toBe('waitlist');
-    s = demoCommand(s, 'event_join', { event_id: 'e1', adults: 2, children: 1 }).state;
+    const second = demoCommand(s, 'event_join', { event_id: 'e1', adults: 2, children: 1 });
+    expect(second.result.attendance_status).toBe('waitlist');
+    s = second.state;
     expect(s.attendance.filter((x) => x.household_id === 'me' && x.event_id === 'e1')).toHaveLength(1);
   });
   it('has both languages for every interface key', () => {

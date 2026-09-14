@@ -45,7 +45,9 @@ test('English interface and event creation', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Find your people', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create a meetup', exact: true }).first().click();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Sunday park coffee');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('textbox', { name: 'Meeting place', exact: true }).fill('Public park café');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Sunday park coffee', { exact: true })).toBeVisible();
 });

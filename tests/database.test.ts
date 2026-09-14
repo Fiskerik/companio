@@ -149,7 +149,8 @@ describe('actual PostgreSQL migrations and authenticated API', () => {
     await command('event_invite', { event_id: eventId, target_id: h2 });
     await as(2);
     expect((await snapshot()).events[0].location).toBeNull();
-    await command('event_join', { event_id: eventId, adults: 2, children: 1 });
+    const pending = await command('event_join', { event_id: eventId, adults: 2, children: 1 });
+    expect(pending.attendance_status).toBe('pending');
     expect((await snapshot()).attendance.find((a: any) => a.household_id === h2).status).toBe('pending');
     expect((await db.query('select * from event_locations')).rows).toHaveLength(0);
     await as(1);
@@ -174,7 +175,8 @@ describe('actual PostgreSQL migrations and authenticated API', () => {
     await as(2);
     await command('event_join', { event_id: id, adults: 2, children: 1 });
     await as(3);
-    await command('event_join', { event_id: id, adults: 1, children: 1 });
+    const waitlisted = await command('event_join', { event_id: id, adults: 1, children: 1 });
+    expect(waitlisted.attendance_status).toBe('waitlist');
     expect(
       (await snapshot()).attendance.find((a: any) => a.household_id === h3 && a.event_id === id).status,
     ).toBe('waitlist');
@@ -202,6 +204,42 @@ describe('actual PostgreSQL migrations and authenticated API', () => {
     await expect(command('message_send', { conversation_id: gc.id, body: 'After leaving' })).rejects.toThrow(
       'NOT_AVAILABLE',
     );
+  });
+  it('persists language exchange profiles, availability and meetups', async () => {
+    await as(1);
+    await command('profile_update', {
+      interests: ['coffee', 'language_learning', 'practice_en'],
+      languages: ['sv'],
+      child_mode: 'either',
+    });
+    await command('availability_create', {
+      activity: 'language_learning',
+      starts_at: future(72),
+      ends_at: future(74),
+      visibility: 'nearby',
+      child_mode: 'either',
+      adults: 1,
+    });
+    const created = await command('event_create', {
+      title: 'Language café',
+      activity: 'language_learning',
+      starts_at: future(96),
+      ends_at: future(98),
+      visibility: 'public',
+      child_mode: 'either',
+      capacity: 6,
+      adults: 1,
+      children: 0,
+      location: 'Library',
+      approval: false,
+    });
+    expect(created.ok).toBe(true);
+    await as(2);
+    const joined = await command('event_join', { event_id: created.id, adults: 1, children: 0 });
+    expect(joined.attendance_status).toBe('accepted');
+    await as(1);
+    expect((await snapshot()).households.find((h: any) => h.id === h1).interests).toContain('practice_en');
+    await expect(command('profile_update', { interests: ['unknown_interest'] })).rejects.toThrow();
   });
   it('invalidates expired availability at query time', async () => {
     await admin(

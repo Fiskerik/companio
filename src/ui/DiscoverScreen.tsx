@@ -24,6 +24,7 @@ export function Discover({ nav }: { nav: Navigation }) {
   const [expanded, setExpanded] = useState<string[]>([]);
   const me = state.households.find((h) => h.id === state.household_id)!;
   const days = timelineDays(state, { when, mode, scope });
+  const calendarFiltersActive = when !== 'all' || mode !== 'all' || scope !== 'all';
   const groups = state.groups.filter((g) => !state.blocked_ids.includes(g.owner_household));
   const sv = locale === 'sv';
   const time = (value: string) =>
@@ -224,13 +225,34 @@ export function Discover({ nav }: { nav: Navigation }) {
           })}
           {!days.length && (
             <Empty
-              title={text('noResults')}
+              title={
+                calendarFiltersActive
+                  ? text('noResults')
+                  : sv
+                    ? 'Inga träffar nära dig ännu'
+                    : 'No meetups nearby yet'
+              }
               body={
-                sv
-                  ? 'Inga aktiviteter inom de här valen. Välj en annan period eller skapa en egen träff.'
-                  : 'No activities with these choices. Try another period or create a meetup.'
+                calendarFiltersActive
+                  ? sv
+                    ? 'Inga aktiviteter matchar de här filtren. Rensa filter eller skapa en egen träff.'
+                    : 'No activities match these filters. Clear them or create your own meetup.'
+                  : sv
+                    ? 'Bjud in andra till något enkelt och skapa den första träffen i området.'
+                    : 'Invite others to something simple and create the first meetup nearby.'
               }
             >
+              {calendarFiltersActive && (
+                <Button
+                  secondary
+                  label={text('clearFilters')}
+                  onPress={() => {
+                    setWhen('all');
+                    setMode('all');
+                    setScope('all');
+                  }}
+                />
+              )}
               <Button label={text('createEvent')} onPress={() => nav.openEditor('event')} />
             </Empty>
           )}
